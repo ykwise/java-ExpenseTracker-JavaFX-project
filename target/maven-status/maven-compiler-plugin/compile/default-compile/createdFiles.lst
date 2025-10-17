@@ -1,0 +1,5 @@
+com\expensetracker\DatabaseManager.class
+com\expensetracker\AddExpenseController.class
+com\expensetracker\Expense.class
+com\expensetracker\MainApp.class
+com\expensetracker\MainViewController.class

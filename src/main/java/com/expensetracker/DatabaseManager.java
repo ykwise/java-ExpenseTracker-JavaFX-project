@@ -12,6 +12,45 @@ import java.sql.PreparedStatement;
 
 public class DatabaseManager {
 	
+	// In DatabaseManager.java
+	public static void updateExpense(int id, LocalDate date, String categoryName, double amount, String description) {
+	    String sql = "UPDATE Expenses SET " +
+	                 "date = ?, " +
+	                 "category_id = (SELECT id FROM Categories WHERE name = ?), " +
+	                 "amount = ?, " +
+	                 "description = ? " +
+	                 "WHERE id = ?";
+
+	    try (Connection conn = DriverManager.getConnection(URL);
+	         PreparedStatement pstmt = conn.prepareStatement(sql)) {
+
+	        pstmt.setString(1, date.toString());
+	        pstmt.setString(2, categoryName);
+	        pstmt.setDouble(3, amount);
+	        pstmt.setString(4, description);
+	        pstmt.setInt(5, id); // Set the ID for the WHERE clause
+	        pstmt.executeUpdate();
+
+	    } catch (SQLException e) {
+	        System.out.println(e.getMessage());
+	    }
+	}
+	
+	//deletes specific row
+	public static void deleteExpense(int id) {
+	    String sql = "DELETE FROM Expenses WHERE id = ?";
+
+	    try (Connection conn = DriverManager.getConnection(URL);
+	         PreparedStatement pstmt = conn.prepareStatement(sql)) {
+
+	        pstmt.setInt(1, id);
+	        pstmt.executeUpdate();
+
+	    } catch (SQLException e) {
+	        System.out.println(e.getMessage());
+	    }
+	}
+	
 	public static void addExpense(LocalDate date, String categoryName, double amount, String description) {
 	    String sql = "INSERT INTO Expenses(date, category_id, amount, description) VALUES(?, (SELECT id FROM Categories WHERE name = ?), ?, ?)";
 
@@ -28,7 +67,7 @@ public class DatabaseManager {
 	        System.out.println(e.getMessage());
 	    }
 	}
-	// In DatabaseManager.java
+	
 	public static List<String> getAllCategoryNames() {
 	    String sql = "SELECT name FROM Categories ORDER BY name";
 	    List<String> categories = new ArrayList<>();
@@ -76,7 +115,7 @@ public class DatabaseManager {
     public static void initializeDatabase() {
     	
     	 try {
-    	        // --- ADD THIS LINE ---
+    	        
     	        Class.forName("org.sqlite.JDBC"); 
 
     	    } catch (ClassNotFoundException e) {

@@ -15,10 +15,93 @@ import javafx.stage.Stage;
 
 import java.time.LocalDate;
 import java.util.List;
+import javafx.scene.control.Alert;
+import java.util.Optional;
+import javafx.scene.control.ButtonType;
 
 public class MainViewController {
 	
-	// In MainViewController.java
+	
+	@FXML
+	private void handleEditExpense() {
+	    // Get the selected expense from the table
+	    Expense selectedExpense = expenseTable.getSelectionModel().getSelectedItem();
+
+	    if (selectedExpense != null) {
+	        try {
+	            // Load the fxml file
+	            FXMLLoader loader = new FXMLLoader();
+	            loader.setLocation(MainApp.class.getResource("AddExpenseView.fxml"));
+	            GridPane page = (GridPane) loader.load();
+
+	            // Create the dialog Stage
+	            Stage dialogStage = new Stage();
+	            dialogStage.setTitle("Edit Expense");
+	            dialogStage.initModality(Modality.WINDOW_MODAL);
+	            Scene scene = new Scene(page);
+	            dialogStage.setScene(scene);
+
+	            
+	            // Get the controller and pass the selected expense data to it
+	            AddExpenseController controller = loader.getController();
+	            controller.setDialogStage(dialogStage);
+	            controller.loadExpenseData(selectedExpense); // We will create this method next
+	            
+
+	            // Show the dialog and wait
+	            dialogStage.showAndWait();
+
+	            // Refresh the table after the dialog is closed
+	            loadExpenseData();
+
+	        } catch (IOException e) {
+	            e.printStackTrace();
+	        }
+	    } else {
+	        // Nothing selected
+	        Alert alert = new Alert(Alert.AlertType.WARNING);
+	        alert.setTitle("No Selection");
+	        alert.setHeaderText("No Expense Selected");
+	        alert.setContentText("Please select an expense in the table to edit.");
+	        alert.showAndWait();
+	    }
+	}
+	
+	
+	@FXML
+	private void handleDeleteExpense() {
+	    // Get the selected expense from the table
+	    Expense selectedExpense = expenseTable.getSelectionModel().getSelectedItem();
+
+	    if (selectedExpense != null) {
+	        
+	        // Show a confirmation dialog
+	        Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
+	        alert.setTitle("Delete Expense");
+	        alert.setHeaderText("Are you sure you want to delete this expense?");
+	        alert.setContentText(selectedExpense.getDate() + ": " + selectedExpense.getCategory() + " - $" + selectedExpense.getAmount());
+
+	        // The showAndWait() method returns an Optional<ButtonType>
+	        alert.showAndWait().ifPresent(response -> {
+	            if (response == ButtonType.OK) {
+	                // User clicked OK, delete the expense
+	                DatabaseManager.deleteExpense(selectedExpense.getId());
+	                // Refresh the table
+	                loadExpenseData();
+	            }
+	        });
+	       
+	    } else {
+	        // Nothing selected
+	        Alert alert = new Alert(Alert.AlertType.WARNING);
+	        alert.setTitle("No Selection");
+	        alert.setHeaderText("No Expense Selected");
+	        alert.setContentText("Please select an expense in the table to delete.");
+	        alert.showAndWait();
+	    }
+	}
+	
+	
 	@FXML
 	private void handleAddExpense() {
 	    try {
@@ -32,11 +115,10 @@ public class MainViewController {
 	        Scene scene = new Scene(page);
 	        dialogStage.setScene(scene);
 
-	        // --- NEW CODE ---
-	        // Give the controller access to the stage.
+	        
 	        AddExpenseController controller = loader.getController();
 	        controller.setDialogStage(dialogStage);
-	        // --- END NEW CODE ---
+	        
 
 	        dialogStage.showAndWait();
 	        loadExpenseData();

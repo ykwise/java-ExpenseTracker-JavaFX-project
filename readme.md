@@ -7,7 +7,7 @@ A full-stack, data-driven desktop application for managing personal expenses. Th
 ## Features & Screenshots
 
 ### Main Dashboard & Analytics
-![Main Window Screenshot](screenshots/Mainwindow.jpg)
+![Main Window Screenshot](screenshots/Mainwin.jpg)
 View all expenses, sorted by date. A dynamic pie chart (using JFreeChart) provides a visual summary of monthly spending by category.
 
 ### Add & Edit Expenses
@@ -56,8 +56,8 @@ This project is built using the **Model-View-Controller (MVC)** design pattern t
 
 1.  **Clone the repository (or download the source code):**
     ```sh
-    git clone [https://github.com/your-username/ExpenseTracker.git](https://github.com/your-username/ExpenseTracker.git)
-    cd ExpenseTracker
+    git clone [https://github.com/ykwise/java-ExpenseTracker-JavaFX-project.git](https://github.com/ykwise/java-ExpenseTracker-JavaFX-project.git)
+    cd java-ExpenseTracker-JavaFX-project
     ```
 
 2.  **Compile and Run using the JavaFX Maven Plugin:**

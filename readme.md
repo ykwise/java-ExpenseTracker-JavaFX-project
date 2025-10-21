@@ -2,24 +2,24 @@
 
 A full-stack, data-driven desktop application for managing personal expenses. This application allows users to track their spending with full CRUD (Create, Read, Update, Delete) functionality, visualize monthly summaries with a pie chart, and export data to a CSV file.
 
-![Expense Tracker Main Window](screenshots/Mainwinodw.png)
+![Expense Tracker Main Window](screenshots/Mainwinodw.jpg)
 
 ## Features & Screenshots
 
 ### Main Dashboard & Analytics
-![Main Window Screenshot](screenshots/Mainwinodw.png)
+![Main Window Screenshot](screenshots/Mainwinodw.jpg)
 View all expenses, sorted by date. A dynamic pie chart (using JFreeChart) provides a visual summary of monthly spending by category.
 
 ### Add & Edit Expenses
-![Add/Edit Screenshot](screenshots/Addexpense.png)
+![Add/Edit Screenshot](screenshots/Addexpense.jpg)
 A single, reusable form is used for both adding new expenses and editing existing ones. The form is launched as a modal dialog, and the category dropdown is dynamically populated from the database.
 
 ### Delete Confirmation
-![Delete Screenshot](screenshots/Deleteexpense.png)
+![Delete Screenshot](screenshots/Deleteexpense.jpg)
 A confirmation dialog, which includes the details of the selected item, appears before any destructive action to prevent accidental data loss.
 
 ### Export to CSV
-![Export Screenshot](screenshots/Exporttocsv.png)
+![Export Screenshot](screenshots/Exporttocsv.jpg)
 Export all expense data to a `.csv` file with a single click. A native file-save dialog allows the user to choose where to save the file.
 
 ---

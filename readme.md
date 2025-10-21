@@ -7,7 +7,7 @@ A full-stack, data-driven desktop application for managing personal expenses. Th
 ## Features & Screenshots
 
 ### Main Dashboard & Analytics
-![Main Window Screenshot](screenshots/Mainwin.jpg)
+![Main Window Screenshot](screenshots/Mainwindow.jpg)
 View all expenses, sorted by date. A dynamic pie chart (using JFreeChart) provides a visual summary of monthly spending by category.
 
 ### Add & Edit Expenses

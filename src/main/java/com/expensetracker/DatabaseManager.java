@@ -9,10 +9,38 @@ import java.util.ArrayList;
 import java.util.List;
 import java.sql.ResultSet;
 import java.sql.PreparedStatement;
+import org.jfree.data.general.DefaultPieDataset;
+
 
 public class DatabaseManager {
 	
-	// In DatabaseManager.java
+	public static DefaultPieDataset getMonthlyCategorySummary() {
+	    DefaultPieDataset dataset = new DefaultPieDataset();
+
+	    // SQL query to get the sum of amounts for each category for the current month.
+	    String sql = "SELECT c.name as category, SUM(e.amount) as total " +
+	                 "FROM Expenses e " +
+	                 "JOIN Categories c ON e.category_id = c.id " +
+	                 "WHERE strftime('%Y-%m', e.date) = strftime('%Y-%m', 'now', 'localtime') " +
+	                 "GROUP BY c.name";
+
+	    try (Connection conn = DriverManager.getConnection(URL);
+	         Statement stmt = conn.createStatement();
+	         ResultSet rs = stmt.executeQuery(sql)) {
+
+	        while (rs.next()) {
+	            String category = rs.getString("category");
+	            double total = rs.getDouble("total");
+	            dataset.setValue(category, total);
+	        }
+	    } catch (SQLException e) {
+	        System.out.println(e.getMessage());
+	    }
+
+	    return dataset;
+	}
+	
+	// updates expense
 	public static void updateExpense(int id, LocalDate date, String categoryName, double amount, String description) {
 	    String sql = "UPDATE Expenses SET " +
 	                 "date = ?, " +

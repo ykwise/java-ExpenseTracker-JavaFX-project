@@ -18,8 +18,91 @@ import java.util.List;
 import javafx.scene.control.Alert;
 import java.util.Optional;
 import javafx.scene.control.ButtonType;
+import javafx.embed.swing.SwingNode;
+import javax.swing.SwingUtilities;
+import org.jfree.chart.ChartFactory;
+import org.jfree.chart.ChartPanel;
+import org.jfree.chart.JFreeChart;
+import org.jfree.data.general.DefaultPieDataset;
+import javafx.stage.FileChooser;
+import java.io.File;
+import java.io.FileWriter;
 
 public class MainViewController {
+	
+	@FXML
+	private void handleExportToCSV() {
+	    FileChooser fileChooser = new FileChooser();
+	    fileChooser.setTitle("Save Expenses as CSV");
+
+	    // Set extension filter
+	    FileChooser.ExtensionFilter extFilter = new FileChooser.ExtensionFilter("CSV files (*.csv)", "*.csv");
+	    fileChooser.getExtensionFilters().add(extFilter);
+
+	    // Show save file dialog
+	    File file = fileChooser.showSaveDialog(expenseTable.getScene().getWindow());
+
+	    if (file != null) {
+	        // Use try-with-resources to ensure the writer is closed
+	        try (FileWriter writer = new FileWriter(file)) {
+	            // Write the CSV header
+	            writer.append("Date,Category,Amount,Description\n");
+
+	            // Get all expenses from the database
+	            List<Expense> expenses = DatabaseManager.getAllExpenses();
+
+	            // Write each expense to the file
+	            for (Expense exp : expenses) {
+	                writer.append(exp.getDate().toString() + ",");
+	                writer.append(exp.getCategory() + ",");
+	                writer.append(String.valueOf(exp.getAmount()) + ",");
+	                // Handle potential commas in the description by replacing them
+	                writer.append(exp.getDescription().replace(",", ";") + "\n");
+	            }
+
+	            // Show a success message
+	            Alert alert = new Alert(Alert.AlertType.INFORMATION);
+	            alert.setTitle("Export Successful");
+	            alert.setHeaderText(null);
+	            alert.setContentText("Expenses successfully exported to " + file.getName());
+	            alert.showAndWait();
+
+	        } catch (IOException e) {
+	            // Show an error message
+	            Alert alert = new Alert(Alert.AlertType.ERROR);
+	            alert.setTitle("Export Error");
+	            alert.setHeaderText("Could not save file");
+	            alert.setContentText("An error occurred while exporting the data: " + e.getMessage());
+	            alert.showAndWait();
+	        }
+	    }
+	}
+	
+	@FXML
+	private SwingNode chartNode;
+	
+	
+	private void loadChartData() {
+	    // Get the dataset from the database
+	    DefaultPieDataset dataset = DatabaseManager.getMonthlyCategorySummary();
+
+	    // Create the pie chart
+	    JFreeChart pieChart = ChartFactory.createPieChart(
+	        "Monthly Expenses by Category", // Chart title
+	        dataset,                       // Data
+	        true,                          // Include legend
+	        true,
+	        false
+	    );
+
+	    // Creating panel to hold the chart
+	    ChartPanel chartPanel = new ChartPanel(pieChart);
+
+	    
+	    SwingUtilities.invokeLater(() -> {
+	        chartNode.setContent(chartPanel);
+	    });
+	}
 	
 	
 	@FXML
@@ -65,29 +148,25 @@ public class MainViewController {
 	        alert.setContentText("Please select an expense in the table to edit.");
 	        alert.showAndWait();
 	    }
+	    loadChartData();
 	}
 	
 	
 	@FXML
 	private void handleDeleteExpense() {
-	    // Get the selected expense from the table
 	    Expense selectedExpense = expenseTable.getSelectionModel().getSelectedItem();
 
 	    if (selectedExpense != null) {
-	        
-	        // Show a confirmation dialog
 	        Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
 	        alert.setTitle("Delete Expense");
 	        alert.setHeaderText("Are you sure you want to delete this expense?");
 	        alert.setContentText(selectedExpense.getDate() + ": " + selectedExpense.getCategory() + " - $" + selectedExpense.getAmount());
 
-	        // The showAndWait() method returns an Optional<ButtonType>
 	        alert.showAndWait().ifPresent(response -> {
 	            if (response == ButtonType.OK) {
-	                // User clicked OK, delete the expense
 	                DatabaseManager.deleteExpense(selectedExpense.getId());
-	                // Refresh the table
 	                loadExpenseData();
+	                loadChartData(); 
 	            }
 	        });
 	       
@@ -99,6 +178,7 @@ public class MainViewController {
 	        alert.setContentText("Please select an expense in the table to delete.");
 	        alert.showAndWait();
 	    }
+	    
 	}
 	
 	
@@ -126,6 +206,7 @@ public class MainViewController {
 	    } catch (IOException e) {
 	        e.printStackTrace();
 	    }
+	    loadChartData();
 	}
 
     @FXML
@@ -154,6 +235,7 @@ public class MainViewController {
 
         // Load the expense data
         loadExpenseData();
+        loadChartData();
     }
 
     // Method to load data from the database and populate the table

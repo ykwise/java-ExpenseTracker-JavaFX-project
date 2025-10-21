@@ -8,6 +8,7 @@
 <?import javafx.scene.layout.BorderPane?>
 <?import javafx.scene.layout.VBox?>
 <?import javafx.scene.text.Font?>
+<?import javafx.embed.swing.SwingNode?>
 
 <BorderPane prefHeight="500.0" prefWidth="800.0" xmlns="http://javafx.com/javafx/17" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.expensetracker.MainViewController">
    <left>
@@ -16,6 +17,8 @@
             <Button onAction="#handleAddExpense" maxWidth="1.7976931348623157E308" mnemonicParsing="false" text="Add Expense" />
             <Button onAction="#handleEditExpense" maxWidth="1.7976931348623157E308" mnemonicParsing="false" text="Edit Expense" />
             <Button onAction="#handleDeleteExpense" maxWidth="1.7976931348623157E308" mnemonicParsing="false" text="Delete Expense" />
+            <Button onAction="#handleExportToCSV" maxWidth="1.7976931348623157E308" mnemonicParsing="false" text="Export to CSV" />
+            
          </children>
          <padding>
             <Insets bottom="10.0" left="10.0" right="10.0" top="10.0" />
@@ -32,6 +35,21 @@
         </columns>
       </TableView>
    </center>
+   <right>
+  <VBox alignment="TOP_CENTER" prefWidth="450.0" spacing="10.0" BorderPane.alignment="CENTER">
+     <padding>
+        <Insets bottom="10.0" left="10.0" right="10.0" top="10.0" />
+     </padding>
+     <children>
+        <Label text="Monthly Summary">
+           <font>
+              <Font name="System Bold" size="18.0" />
+           </font>
+        </Label>
+        <SwingNode fx:id="chartNode" />
+     </children>
+  </VBox>
+</right>
    <top>
       <Label text="My Expenses" BorderPane.alignment="CENTER">
          <font>

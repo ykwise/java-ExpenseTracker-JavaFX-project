@@ -2,12 +2,12 @@
 
 A full-stack, data-driven desktop application for managing personal expenses. This application allows users to track their spending with full CRUD (Create, Read, Update, Delete) functionality, visualize monthly summaries with a pie chart, and export data to a CSV file.
 
-![Expense Tracker Main Window](screenshots/Mainwinodw.jpg)
+![Expense Tracker Main Window](screenshots/Mainwindow.jpg)
 
 ## Features & Screenshots
 
 ### Main Dashboard & Analytics
-![Main Window Screenshot](screenshots/Mainwinodw.jpg)
+![Main Window Screenshot](screenshots/Mainwindow.jpg)
 View all expenses, sorted by date. A dynamic pie chart (using JFreeChart) provides a visual summary of monthly spending by category.
 
 ### Add & Edit Expenses

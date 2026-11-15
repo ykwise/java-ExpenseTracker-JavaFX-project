@@ -1,14 +1,18 @@
 package com.expensetracker;
 
 import com.expensetracker.BudgetService.BudgetStatus;
+import com.expensetracker.suggest.AsyncSuggester;
 import java.time.LocalDate;
 import java.time.YearMonth;
 import java.util.OptionalDouble;
+import javafx.animation.PauseTransition;
 import javafx.fxml.FXML;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.DatePicker;
+import javafx.scene.control.Label;
 import javafx.scene.control.TextField;
 import javafx.stage.Stage;
+import javafx.util.Duration;
 
 /** Controller for the Add / Edit Expense dialog. */
 public class AddExpenseController {
@@ -21,28 +25,86 @@ public class AddExpenseController {
     private TextField amountField;
     @FXML
     private TextField descriptionField;
+    @FXML
+    private Label suggestionLabel;
 
     private final ExpenseRepository repository;
+    private final AsyncSuggester suggester;
     private Stage dialogStage;
     private Integer expenseId = null; // null means "Add" mode, a value means "Edit" mode
 
-    public AddExpenseController(ExpenseRepository repository) {
+    // Wait for a pause in typing before asking for a suggestion (debounce): one request
+    // per pause instead of one per keystroke, which also limits API calls and cost.
+    private final PauseTransition typingPause = new PauseTransition(Duration.millis(600));
+    private boolean userChoseCategory = false;    // never override a category the user picked
+    private boolean applyingSuggestion = false;   // distinguishes our setValue from the user's
+
+    public AddExpenseController(ExpenseRepository repository, AsyncSuggester suggester) {
         this.repository = repository;
+        this.suggester = suggester;
     }
 
     @FXML
     private void initialize() {
         categoryComboBox.getItems().addAll(repository.getAllCategoryNames());
         datePicker.setValue(LocalDate.now()); // most expenses are entered on the day
+
+        categoryComboBox.valueProperty().addListener((obs, oldValue, newValue) -> {
+            if (!applyingSuggestion && newValue != null) {
+                userChoseCategory = true;
+                suggester.cancelPending();
+                hideSuggestion();
+            }
+        });
+
+        typingPause.setOnFinished(event -> requestSuggestion());
+        descriptionField.textProperty().addListener((obs, oldText, newText) -> {
+            if (!userChoseCategory) {
+                typingPause.playFromStart();
+            }
+        });
+    }
+
+    private void requestSuggestion() {
+        String description = descriptionField.getText();
+        if (description == null || description.isBlank()) {
+            return;
+        }
+        // Runs on a background thread; the callback comes back on the JavaFX thread
+        suggester.request(description, categoryComboBox.getItems(), suggestion -> {
+            if (userChoseCategory || suggestion.isEmpty()) {
+                return;
+            }
+            applyingSuggestion = true;
+            categoryComboBox.setValue(suggestion.get());
+            applyingSuggestion = false;
+            suggestionLabel.setText("Suggested category: " + suggestion.get() + " (you can change it)");
+            suggestionLabel.setVisible(true);
+            suggestionLabel.setManaged(true);
+            if (dialogStage != null) {
+                dialogStage.sizeToScene();
+            }
+        });
+    }
+
+    private void hideSuggestion() {
+        suggestionLabel.setVisible(false);
+        suggestionLabel.setManaged(false);
     }
 
     public void setDialogStage(Stage dialogStage) {
         this.dialogStage = dialogStage;
+        // Whichever way the dialog closes, drop any suggestion still in flight
+        dialogStage.setOnHidden(event -> {
+            typingPause.stop();
+            suggester.cancelPending();
+        });
     }
 
     /** Switches the dialog to Edit mode and pre-fills it with an existing expense. */
     public void loadExpenseData(Expense expense) {
         this.expenseId = expense.getId();
+        this.userChoseCategory = true; // editing: the category was already chosen
         datePicker.setValue(expense.getDate());
         categoryComboBox.setValue(expense.getCategory());
         amountField.setText(String.valueOf(expense.getAmount()));

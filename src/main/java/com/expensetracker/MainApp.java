@@ -1,7 +1,11 @@
 package com.expensetracker;
 
+import com.expensetracker.suggest.AsyncSuggester;
+import com.expensetracker.suggest.CategorySuggester;
+import com.expensetracker.suggest.Suggesters;
 import java.io.IOException;
 import javafx.application.Application;
+import javafx.application.Platform;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
@@ -17,6 +21,8 @@ public class MainApp extends Application {
     /** Override with -Dexpensetracker.db=/path/to/file.db to use a different database file. */
     static final String DB_PATH = System.getProperty("expensetracker.db", "expenses.db");
 
+    private AsyncSuggester suggester;
+
     @Override
     public void start(Stage primaryStage) throws IOException {
         // Any unexpected error from a button handler (e.g. the database file is locked)
@@ -29,6 +35,12 @@ public class MainApp extends Application {
         ExpenseRepository repository = new ExpenseRepository("jdbc:sqlite:" + DB_PATH);
         repository.initialize();
 
+        // Category suggestions: Claude if ANTHROPIC_API_KEY is set, offline keywords otherwise.
+        // Work runs on a background thread; results are handed back to the JavaFX thread.
+        CategorySuggester categorySuggester = Suggesters.create(System.getenv());
+        suggester = new AsyncSuggester(categorySuggester, Platform::runLater);
+        AsyncSuggester asyncSuggester = suggester;
+
         Callback<Class<?>, Object> controllers = new Callback<>() {
             @Override
             public Object call(Class<?> type) {
@@ -36,7 +48,7 @@ public class MainApp extends Application {
                     return new MainViewController(repository, this);
                 }
                 if (type == AddExpenseController.class) {
-                    return new AddExpenseController(repository);
+                    return new AddExpenseController(repository, asyncSuggester);
                 }
                 throw new IllegalArgumentException("No controller registered for " + type);
             }
@@ -47,8 +59,17 @@ public class MainApp extends Application {
         Parent root = loader.load();
 
         primaryStage.setScene(new Scene(root));
-        primaryStage.setTitle("Expense Tracker");
+        primaryStage.setTitle(Suggesters.aiEnabled(System.getenv())
+                ? "Expense Tracker (AI suggestions on)" : "Expense Tracker");
         primaryStage.show();
+    }
+
+    /** Graceful shutdown: called by JavaFX when the window closes. */
+    @Override
+    public void stop() {
+        if (suggester != null) {
+            suggester.close();
+        }
     }
 
     // FXML handlers wrap exceptions (RuntimeException -> InvocationTargetException -> ...),

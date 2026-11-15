@@ -12,6 +12,6 @@ Reviewed at the end of each sprint ([SPRINTS.md](SPRINTS.md)).
 | R5 | **Privacy:** expense descriptions are sent to a third party without the user realising. | Low | Medium | AI is off unless the user sets an API key; the window title shows when it is on; documented in the README. | Mitigated |
 | R6 | **Malicious content in exports:** a description opens as a formula in Excel (CSV injection). | Low | Medium | Prefix risky cells when exporting (BUG-02). | Open |
 | R7 | **Rounding errors in totals** from storing money as `double`. | Medium | Low | Display rounds to two decimals; move to integer cents when it matters ([ADR 0007](adr/0007-money-as-double.md)). | Accepted |
-| R8 | **UI not verified:** layout or styling problems that automated tests can't catch. | Medium | Medium | Review on screen before release; add UI tests (TestFX) for the main dialogs. | Open |
+| R8 | **UI regressions:** layout or styling problems that automated tests can't catch. | Medium | Medium | Main window reviewed on screen (four issues fixed); add UI tests (TestFX) and review the dialogs. | Partly mitigated |
 | R9 | **Licensing:** the original project has no licence, so reuse and redistribution rights are unclear. | High | Medium | Ask the original author to add a licence, or license only the changes and say so in the README. | Open |
 | R10 | **Single maintainer:** knowledge lives with one person. | High | Medium | Decision records, architecture and metrics docs, and tests that document behaviour. | Mitigated |

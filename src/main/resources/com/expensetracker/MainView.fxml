@@ -20,7 +20,7 @@
 <!--
   Layout:
   ┌──────────────────────────────────────────────────────────────────────┐
-  │ ‹  November 2026  ›  This month        Set budget  Categories  Settings │
+  │ ‹ ›  November 2026  Back to this month   Set budget  Categories  Settings │
   │ [ Spent in November │ Compared with October │ Budgets ]               │
   │ ┌ Expenses ───────────────────────────┐ ┌ Spending by category ────┐ │
   │ │ + Add expense  Edit Delete  Export  │ │  (pie)                    │ │
@@ -42,10 +42,10 @@
                   <Button onAction="#handlePreviousMonth" styleClass="nav-button" text="‹">
                      <tooltip><Tooltip text="Previous month (⌘←)" /></tooltip>
                   </Button>
-                  <Label fx:id="monthLabel" styleClass="month-title" />
                   <Button onAction="#handleNextMonth" styleClass="nav-button" text="›">
                      <tooltip><Tooltip text="Next month (⌘→)" /></tooltip>
                   </Button>
+                  <Label fx:id="monthLabel" styleClass="month-title" />
                   <Button fx:id="thisMonthButton" onAction="#handleThisMonth" styleClass="quiet" text="Back to this month" />
                   <Region HBox.hgrow="ALWAYS" />
                   <Button onAction="#handleSetBudget" text="Set budget" />

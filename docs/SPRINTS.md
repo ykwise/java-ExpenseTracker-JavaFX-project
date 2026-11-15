@@ -75,8 +75,10 @@ and shape categories to real spending. **Pull request:** `feature/ux-improvement
 **Review**
 - All stories met their acceptance criteria in automated tests, including month boundaries across
   the year end and the all-or-nothing category delete.
-- Not demonstrated yet: the redesigned UI on screen. It compiles and its stylesheet parses without
-  errors, but it hasn't been looked at by a person.
+- The redesigned UI was reviewed on screen after the sprint's code was finished. Structure, colours,
+  summary strip and budget panel rendered as intended; four layout problems were found and fixed:
+  bordered and drifting month arrows, table text not vertically centred, column headers not lined up
+  with cell text, and lines and a hover band on empty table rows.
 
 **Retrospective**
 - *Went well:* moving the month into repository parameters made both the feature and the tests
@@ -101,6 +103,5 @@ and shape categories to real spending. **Pull request:** `feature/ux-improvement
 | BUG-02: CSV formula injection | Must |
 | BUG-03: database location depends on start folder | Must |
 | BUG-04: silent start-up failure | Should |
-| Check the redesigned UI on screen and adjust | Must |
 | Test AI suggestions against the real API | Should |
 | US-18: installable `.dmg` / `.msi` | Should |

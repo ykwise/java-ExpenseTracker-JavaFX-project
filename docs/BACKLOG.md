@@ -122,4 +122,4 @@ Each one says how it is verified, so it is a requirement rather than a wish.
 | NFR-07 | **Portability:** builds and passes tests on macOS and Linux. | CI runs on Ubuntu and macOS for every push. | ✅ |
 | NFR-08 | **Maintainability:** classes stay small, loosely coupled and cohesive; changes are covered by tests. | CKJM measured before and after each release ([METRICS.md](METRICS.md)); 112 automated tests. | ✅ |
 | NFR-09 | **Consistency:** money looks the same on every computer, whatever its language settings. | Test formats under a German locale. | ✅ |
-| NFR-10 | **Usability:** common actions have shortcuts; empty screens and errors say what to do next. | Implemented; not yet checked with real users or UI tests. | 🔄 |
+| NFR-10 | **Usability:** common actions have shortcuts; empty screens and errors say what to do next. | Main window reviewed on screen; not yet checked with other users or UI tests. | 🔄 |

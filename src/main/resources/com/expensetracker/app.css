@@ -45,11 +45,13 @@
 .month-title {
     -fx-font-size: 28px;
     -fx-font-weight: bold;
-    -fx-min-width: 230px;
+    -fx-padding: 0 12 0 6;
 }
 
-.nav-button {
+/* Two-class selector so it wins over the generic .button border */
+.button.nav-button {
     -fx-background-color: transparent;
+    -fx-border-color: transparent;
     -fx-text-fill: c-muted;
     -fx-font-size: 16px;
     -fx-padding: 2 10 2 10;
@@ -57,7 +59,8 @@
     -fx-cursor: hand;
 }
 
-.nav-button:hover {
+.button.nav-button:hover,
+.button.nav-button:focused {
     -fx-background-color: c-accent-tint;
     -fx-text-fill: c-accent-dark;
 }
@@ -194,6 +197,7 @@
     -fx-text-fill: c-muted;
     -fx-font-weight: normal;
     -fx-alignment: center-left;
+    -fx-padding: 0 8 0 8; /* same inset as the cells below, so text lines up */
 }
 
 .table-view .amount-column .label {
@@ -208,6 +212,13 @@
     -fx-background-color: c-surface;
     -fx-border-color: transparent transparent #EEF1EE transparent;
     -fx-cell-size: 34px;
+}
+
+/* Rows below the last expense: no lines, no hover band */
+.table-row-cell:empty,
+.table-row-cell:empty:hover {
+    -fx-background-color: c-surface;
+    -fx-border-color: transparent;
 }
 
 .table-row-cell:hover {
@@ -225,14 +236,15 @@
 .table-cell {
     -fx-padding: 0 8 0 8;
     -fx-text-fill: c-ink;
+    -fx-alignment: center-left; /* vertically centred, like the amount column */
 }
 
-.amount-cell {
+.table-cell.amount-cell {
     -fx-alignment: center-right;
     -fx-font-weight: bold;
 }
 
-.category-cell {
+.table-cell.category-cell {
     -fx-text-fill: c-muted;
 }
 

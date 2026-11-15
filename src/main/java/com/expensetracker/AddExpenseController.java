@@ -27,6 +27,8 @@ public class AddExpenseController {
     private TextField descriptionField;
     @FXML
     private Label suggestionLabel;
+    @FXML
+    private Label formTitle;
 
     private final ExpenseRepository expenses;
     private final BudgetRepository budgets;
@@ -35,6 +37,7 @@ public class AddExpenseController {
     private final AsyncSuggester suggester;
     private Stage dialogStage;
     private Integer expenseId = null; // null means "Add" mode, a value means "Edit" mode
+    private LocalDate savedDate = null; // set only when Save succeeded
 
     // Wait for a pause in typing before asking for a suggestion (debounce): one request
     // per pause instead of one per keystroke, which also limits API calls and cost.
@@ -85,7 +88,7 @@ public class AddExpenseController {
             applyingSuggestion = true;
             categoryComboBox.setValue(suggestion.get());
             applyingSuggestion = false;
-            suggestionLabel.setText("Suggested category: " + suggestion.get() + " (you can change it)");
+            suggestionLabel.setText("Category suggested from the description. You can change it.");
             suggestionLabel.setVisible(true);
             suggestionLabel.setManaged(true);
             if (dialogStage != null) {
@@ -112,6 +115,7 @@ public class AddExpenseController {
     public void loadExpenseData(Expense expense) {
         this.expenseId = expense.getId();
         this.userChoseCategory = true; // editing: the category was already chosen
+        formTitle.setText("Edit expense");
         datePicker.setValue(expense.getDate());
         categoryComboBox.setValue(expense.getCategory());
         amountField.setText(String.valueOf(expense.getAmount()));
@@ -121,19 +125,19 @@ public class AddExpenseController {
     @FXML
     private void handleSave() {
         if (datePicker.getValue() == null || categoryComboBox.getValue() == null || amountField.getText().isBlank()) {
-            Alerts.error("Please correct invalid fields", "Date, Category, and Amount are required.");
+            Alerts.error("Expense not saved", "Date, category and amount are required.");
             return;
         }
 
         double amount;
         try {
-            amount = Double.parseDouble(amountField.getText().trim());
+            amount = Double.parseDouble(amountField.getText().trim().replace(",", ""));
         } catch (NumberFormatException e) {
-            Alerts.error("Invalid Amount", "Please enter a valid number for the amount.");
+            Alerts.error("Expense not saved", "Enter the amount as a number, for example 850 or 1250.50.");
             return;
         }
         if (amount <= 0) {
-            Alerts.error("Invalid Amount", "The amount must be greater than 0.");
+            Alerts.error("Expense not saved", "The amount must be greater than 0.");
             return;
         }
 
@@ -147,6 +151,7 @@ public class AddExpenseController {
             expenses.updateExpense(expenseId, date, category, amount, description);
         }
 
+        savedDate = date;
         showBudgetAlertIfNeeded(date, category);
         dialogStage.close();
     }
@@ -165,13 +170,18 @@ public class AddExpenseController {
         if (status == BudgetStatus.WARNING || status == BudgetStatus.EXCEEDED) {
             double limit = budget.getAsDouble();
             MoneyFormat money = settings.moneyFormat();
-            Alerts.warning("Budget Alert",
+            Alerts.warning("Budget alert",
                     status == BudgetStatus.EXCEEDED
                             ? category + " budget exceeded"
                             : category + " budget almost used up",
                     String.format("Spent %s of %s this month (%.0f%%).",
                             money.format(spent), money.format(limit), spent / limit * 100));
         }
+    }
+
+    /** The saved expense's date, or empty if the dialog was cancelled. */
+    public java.util.Optional<LocalDate> savedDate() {
+        return java.util.Optional.ofNullable(savedDate);
     }
 
     @FXML

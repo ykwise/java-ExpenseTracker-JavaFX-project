@@ -27,9 +27,10 @@ final class CategoryManagerDialog {
     /** Shows the dialog and blocks until it is closed. */
     void showAndWait(Window owner) {
         Dialog<Void> dialog = new Dialog<>();
+        Theme.apply(dialog.getDialogPane());
         dialog.initOwner(owner);
         dialog.setTitle("Categories");
-        dialog.setHeaderText("Add, rename or delete categories");
+        dialog.setHeaderText("Your categories");
 
         Button add = new Button("Add…");
         Button rename = new Button("Rename…");
@@ -46,7 +47,7 @@ final class CategoryManagerDialog {
             }
         });
 
-        Label hint = new Label("Categories used by expenses can be renamed but not deleted.");
+        Label hint = new Label("A category that has expenses can be renamed but not deleted.");
         hint.getStyleClass().add("muted");
 
         VBox buttons = new VBox(8, add, rename, delete);
@@ -92,6 +93,7 @@ final class CategoryManagerDialog {
         String current = list.getSelectionModel().getSelectedItem();
         Alert confirm = new Alert(Alert.AlertType.CONFIRMATION,
                 "Delete \"" + current + "\"? Its budget, if any, is removed too.", ButtonType.OK, ButtonType.CANCEL);
+        Theme.apply(confirm.getDialogPane());
         confirm.setHeaderText("Delete category");
         confirm.initOwner(list.getScene().getWindow());
         confirm.showAndWait().filter(b -> b == ButtonType.OK).ifPresent(b -> run(() -> {
@@ -102,6 +104,7 @@ final class CategoryManagerDialog {
 
     private Optional<String> prompt(String title, String label, String initial) {
         TextInputDialog input = new TextInputDialog(initial);
+        Theme.apply(input.getDialogPane());
         input.initOwner(list.getScene().getWindow());
         input.setTitle(title);
         input.setHeaderText(null);
@@ -114,7 +117,7 @@ final class CategoryManagerDialog {
         try {
             action.run();
         } catch (IllegalArgumentException e) {
-            Alerts.error("Can't do that", e.getMessage());
+            Alerts.error("Category not changed", e.getMessage());
         }
     }
 }

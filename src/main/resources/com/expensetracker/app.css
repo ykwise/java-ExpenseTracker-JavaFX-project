@@ -1,0 +1,337 @@
+/*
+ * Expense Tracker theme: a calm ledger.
+ * Paper-coloured background, white working surfaces, deep green ink and one green accent.
+ * Colour is reserved for meaning: green = within budget / less spending, amber = near
+ * the limit, rust red = over budget / more spending.
+ */
+
+.root {
+    c-paper: #F3F5F2;
+    c-surface: #FFFFFF;
+    c-ink: #17302B;
+    c-muted: #61716C;
+    c-rule: #D9E0DB;
+    c-accent: #1F6B55;
+    c-accent-dark: #18584A;
+    c-accent-tint: #E3EFE9;
+    c-ok: #2F7D5B;
+    c-near: #B7791F;
+    c-over: #B4432F;
+
+    -fx-font-size: 13px;
+    -fx-text-fill: c-ink;
+    -fx-background-color: c-paper;
+    -fx-accent: c-accent;
+    -fx-focus-color: c-accent;
+    -fx-faint-focus-color: transparent;
+}
+
+.label {
+    -fx-text-fill: c-ink;
+}
+
+.muted {
+    -fx-text-fill: c-muted;
+}
+
+/* ---------------------------------------------------------------- header */
+
+.app-header {
+    -fx-padding: 18 24 10 24;
+    -fx-spacing: 10;
+    -fx-alignment: center-left;
+}
+
+.month-title {
+    -fx-font-size: 28px;
+    -fx-font-weight: bold;
+    -fx-min-width: 230px;
+}
+
+.nav-button {
+    -fx-background-color: transparent;
+    -fx-text-fill: c-muted;
+    -fx-font-size: 16px;
+    -fx-padding: 2 10 2 10;
+    -fx-background-radius: 6;
+    -fx-cursor: hand;
+}
+
+.nav-button:hover {
+    -fx-background-color: c-accent-tint;
+    -fx-text-fill: c-accent-dark;
+}
+
+/* ---------------------------------------------------------------- buttons */
+
+.button {
+    -fx-background-color: c-surface;
+    -fx-border-color: c-rule;
+    -fx-border-radius: 6;
+    -fx-background-radius: 6;
+    -fx-text-fill: c-ink;
+    -fx-padding: 6 14 6 14;
+    -fx-cursor: hand;
+}
+
+.button:hover {
+    -fx-background-color: c-accent-tint;
+}
+
+.button:focused {
+    -fx-border-color: c-accent;
+}
+
+.button:disabled {
+    -fx-opacity: 0.45;
+}
+
+.button.primary {
+    -fx-background-color: c-accent;
+    -fx-border-color: c-accent;
+    -fx-text-fill: white;
+    -fx-font-weight: bold;
+}
+
+.button.primary:hover {
+    -fx-background-color: c-accent-dark;
+}
+
+.button.quiet {
+    -fx-background-color: transparent;
+    -fx-border-color: transparent;
+    -fx-text-fill: c-muted;
+}
+
+.button.quiet:hover {
+    -fx-text-fill: c-accent-dark;
+    -fx-background-color: c-accent-tint;
+}
+
+/* ---------------------------------------------------------------- summary strip */
+
+.summary-strip {
+    -fx-background-color: c-surface;
+    -fx-border-color: c-rule;
+    -fx-border-radius: 8;
+    -fx-background-radius: 8;
+    -fx-padding: 16 0 16 0;
+}
+
+.figure {
+    -fx-padding: 0 24 0 24;
+}
+
+.figure-value {
+    -fx-font-size: 22px;
+    -fx-font-weight: bold;
+}
+
+.figure-value.up {
+    -fx-text-fill: c-over;
+}
+
+.figure-value.down {
+    -fx-text-fill: c-ok;
+}
+
+.figure-caption {
+    -fx-text-fill: c-muted;
+}
+
+.figure-rule {
+    -fx-min-width: 1;
+    -fx-max-width: 1;
+    -fx-background-color: c-rule;
+}
+
+/* ---------------------------------------------------------------- panels */
+
+.panel {
+    -fx-background-color: c-surface;
+    -fx-border-color: c-rule;
+    -fx-border-radius: 8;
+    -fx-background-radius: 8;
+    -fx-padding: 16;
+}
+
+.panel-title {
+    -fx-font-size: 15px;
+    -fx-font-weight: bold;
+}
+
+.text-field, .combo-box {
+    -fx-background-color: c-surface;
+    -fx-border-color: c-rule;
+    -fx-border-radius: 6;
+    -fx-background-radius: 6;
+}
+
+.text-field:focused, .combo-box:focused {
+    -fx-border-color: c-accent;
+}
+
+/* ---------------------------------------------------------------- table */
+
+.table-view {
+    -fx-background-color: transparent;
+    -fx-border-color: transparent;
+    -fx-table-cell-border-color: transparent;
+}
+
+.table-view .column-header-background {
+    -fx-background-color: c-surface;
+    -fx-border-color: transparent transparent c-rule transparent;
+}
+
+.table-view .column-header {
+    -fx-background-color: transparent;
+    -fx-border-color: transparent;
+    -fx-padding: 6 0 6 0;
+}
+
+.table-view .column-header .label {
+    -fx-text-fill: c-muted;
+    -fx-font-weight: normal;
+    -fx-alignment: center-left;
+}
+
+.table-view .amount-column .label {
+    -fx-alignment: center-right;
+}
+
+.table-view .filler {
+    -fx-background-color: c-surface;
+}
+
+.table-row-cell {
+    -fx-background-color: c-surface;
+    -fx-border-color: transparent transparent #EEF1EE transparent;
+    -fx-cell-size: 34px;
+}
+
+.table-row-cell:hover {
+    -fx-background-color: #F6F8F6;
+}
+
+.table-row-cell:selected {
+    -fx-background-color: c-accent-tint;
+}
+
+.table-row-cell:selected .table-cell {
+    -fx-text-fill: c-ink;
+}
+
+.table-cell {
+    -fx-padding: 0 8 0 8;
+    -fx-text-fill: c-ink;
+}
+
+.amount-cell {
+    -fx-alignment: center-right;
+    -fx-font-weight: bold;
+}
+
+.category-cell {
+    -fx-text-fill: c-muted;
+}
+
+.result-line {
+    -fx-text-fill: c-muted;
+}
+
+/* ---------------------------------------------------------------- chart */
+
+.chart {
+    -fx-padding: 0;
+}
+
+.chart-title {
+    -fx-font-size: 15px;
+    -fx-font-weight: bold;
+    -fx-text-fill: c-ink;
+}
+
+.chart-legend {
+    -fx-background-color: transparent;
+    -fx-padding: 6 0 0 0;
+}
+
+.chart-legend-item {
+    -fx-text-fill: c-ink;
+}
+
+/* A muted, related palette instead of JavaFX's default primaries */
+.default-color0.chart-pie { -fx-pie-color: #1F6B55; }
+.default-color1.chart-pie { -fx-pie-color: #6FA58C; }
+.default-color2.chart-pie { -fx-pie-color: #B7791F; }
+.default-color3.chart-pie { -fx-pie-color: #4C6A8F; }
+.default-color4.chart-pie { -fx-pie-color: #B4432F; }
+.default-color5.chart-pie { -fx-pie-color: #8C7AA9; }
+.default-color6.chart-pie { -fx-pie-color: #A9B8A1; }
+.default-color7.chart-pie { -fx-pie-color: #5E8C8A; }
+
+.chart-pie {
+    -fx-border-color: c-surface;
+    -fx-border-width: 1;
+}
+
+/* ---------------------------------------------------------------- budgets */
+
+.budget-name {
+    -fx-font-weight: bold;
+}
+
+.budget-amounts {
+    -fx-text-fill: c-muted;
+}
+
+.progress-bar {
+    -fx-pref-height: 10;
+}
+
+.progress-bar > .track {
+    -fx-background-color: #E8ECE8;
+    -fx-background-radius: 5;
+    -fx-background-insets: 0;
+}
+
+.progress-bar > .bar {
+    -fx-background-radius: 5;
+    -fx-background-insets: 0;
+    -fx-padding: 4;
+}
+
+.budget-ok > .bar   { -fx-background-color: c-ok; }
+.budget-near > .bar { -fx-background-color: c-near; }
+.budget-over > .bar { -fx-background-color: c-over; }
+
+/* ---------------------------------------------------------------- dialogs */
+
+.dialog-pane {
+    -fx-background-color: c-surface;
+}
+
+.dialog-pane > .header-panel {
+    -fx-background-color: c-paper;
+}
+
+.dialog-pane > .header-panel .label {
+    -fx-font-size: 15px;
+    -fx-font-weight: bold;
+}
+
+.expense-form {
+    -fx-background-color: c-surface;
+    -fx-padding: 24;
+}
+
+.form-title {
+    -fx-font-size: 18px;
+    -fx-font-weight: bold;
+}
+
+.suggestion {
+    -fx-text-fill: c-accent-dark;
+    -fx-font-size: 12px;
+}

@@ -62,7 +62,11 @@ public class MainApp extends Application {
         loader.setControllerFactory(controllers);
         Parent root = loader.load();
 
-        primaryStage.setScene(new Scene(root));
+        Scene scene = new Scene(root);
+        Theme.apply(scene);
+        primaryStage.setScene(scene);
+        primaryStage.setMinWidth(980);
+        primaryStage.setMinHeight(640);
         primaryStage.setTitle(Suggesters.aiEnabled(System.getenv())
                 ? "Expense Tracker (AI suggestions on)" : "Expense Tracker");
         primaryStage.show();

@@ -22,6 +22,7 @@ final class Alerts {
 
     private static void show(Alert.AlertType type, String title, String header, String content) {
         Alert alert = new Alert(type);
+        Theme.apply(alert.getDialogPane());
         alert.setTitle(title);
         alert.setHeaderText(header);
         alert.setContentText(content);

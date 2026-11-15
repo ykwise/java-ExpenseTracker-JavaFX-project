@@ -2,6 +2,20 @@
 
 Changes on top of the original project ([ykwise/java-ExpenseTracker-JavaFX-project](https://github.com/ykwise/java-ExpenseTracker-JavaFX-project)).
 
+## 1.3 – Fixes from review
+
+### Fixed
+- CSV export writes amounts as plain decimals (`12500000.00`), not scientific notation (`1.25E7`).
+- CSV export neutralises text that would run as a spreadsheet formula (CSV injection).
+- The database is kept in the operating system's per-user data folder, so starting the app from a
+  different folder no longer opens an empty database. An existing `expenses.db` from the project
+  folder is copied there once and the original left as a backup.
+- If the database can't be opened at start-up, the app says why and exits cleanly instead of
+  closing with only a terminal stack trace.
+
+### Added
+- GitHub issues for every backlog item, sprint milestones, and a project board.
+
 ## 1.2 – Month view, search, categories and a redesigned UI
 
 ### Added

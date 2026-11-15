@@ -93,15 +93,42 @@ and shape categories to real spending. **Pull request:** `feature/ux-improvement
 
 ---
 
+## Sprint 3: Fix what the review found
+
+**Goal:** fix the four bugs found when reviewing Sprint 2, and start tracking work on a real board.
+**Pull request:** `feature/sprint-3-fixes`. **Board:** GitHub Project "Expense Tracker"
+(Backlog, Sprint, Doing, Review, Done), with one issue per backlog item and a milestone per sprint.
+
+**Done:** BUG-01, BUG-02, BUG-03, BUG-04.
+
+- BUG-01, BUG-02: CSV amounts are plain decimals (`12500000.00`, not `1.25E7`), and text that would
+  run as a spreadsheet formula is neutralised (OWASP's CSV injection guidance).
+- BUG-03: the database lives in the OS's per-user application data folder. A file left in the
+  project folder by earlier versions is copied there once, the original kept as a backup.
+- BUG-04: a start-up failure shows what went wrong and that no data was changed, then exits cleanly.
+
+**Review**
+- Each bug has tests that fail on the old behaviour; 125 tests pass.
+- Still to check on screen: the one-time "Your data has moved" message, and the Add expense dialog.
+
+**Retrospective**
+- *Went well:* a deliberate review of finished work found real bugs, including one (BUG-03) that
+  would have looked like data loss to a user.
+- *Went well:* making `DataLocation` take its inputs (OS name, environment, home folder) as
+  parameters meant every platform could be tested on one machine.
+- *To improve:* the board was created after Sprints 1 and 2 had finished, so their cards were added
+  as already done. From Sprint 4 on, cards move through the columns as the work happens.
+
+---
+
 ## Next sprint (proposed)
 
-**Goal:** fix the open bugs and make the app installable.
+**Goal:** make the app installable and close the remaining verification gaps.
 
 | Item | MoSCoW |
 |---|---|
-| BUG-01: CSV amounts in scientific notation | Must |
-| BUG-02: CSV formula injection | Must |
-| BUG-03: database location depends on start folder | Must |
-| BUG-04: silent start-up failure | Should |
+| Check the Add expense dialog and the data-moved message on screen | Must |
 | Test AI suggestions against the real API | Should |
-| US-18: installable `.dmg` / `.msi` | Should |
+| US-18: installable `.dmg` / `.msi` built by CI | Should |
+| US-19: back up and restore | Should |
+| Add a licence (R9) | Should |

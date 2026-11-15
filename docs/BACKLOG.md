@@ -81,16 +81,16 @@ requirements, and what is deliberately out of scope. Priorities use **MoSCoW**
 
 | ID | User story | MoSCoW | Sprint | Status |
 |---|---|---|---|---|
-| US-17 | As a user, I want to export all expenses to CSV, so that I can use them in a spreadsheet. | Must | Original, fixed in 1 | ✅, see BUG-01 and BUG-02 |
+| US-17 | As a user, I want to export all expenses to CSV, so that I can use them in a spreadsheet. | Must | Original, fixed in 1 and 3 | ✅ |
 
 ## Open items
 
 | ID | Item | MoSCoW | Status |
 |---|---|---|---|
-| BUG-01 | CSV export writes large amounts in scientific notation (12,500,000 becomes `1.25E7`). | Must | ⬜ |
-| BUG-02 | CSV export doesn't guard against formula injection (a description starting with `=` runs as a formula in Excel). | Must | ⬜ |
-| BUG-03 | The database file is created in whatever folder the app is started from, so starting it elsewhere shows an empty app. | Must | ⬜ |
-| BUG-04 | If the database can't be opened at start-up, the app exits without a message. | Should | ⬜ |
+| BUG-01 | CSV export writes large amounts in scientific notation (12,500,000 becomes `1.25E7`). | Must | ✅ Sprint 3 |
+| BUG-02 | CSV export doesn't guard against formula injection (a description starting with `=` runs as a formula in Excel). | Must | ✅ Sprint 3 |
+| BUG-03 | The database file is created in whatever folder the app is started from, so starting it elsewhere shows an empty app. | Must | ✅ Sprint 3 |
+| BUG-04 | If the database can't be opened at start-up, the app exits without a message. | Should | ✅ Sprint 3 |
 | US-18 | As a user, I want to install the app without Java or Maven (macOS `.dmg`, Windows `.msi`). | Should | ⬜ |
 | US-19 | As a user, I want to back up and restore my data. | Should | ⬜ |
 | US-20 | As a user, I want totals that never show rounding errors (store money as integer cents, [ADR 0007](adr/0007-money-as-double.md)). | Could | ⬜ |
@@ -120,6 +120,6 @@ Each one says how it is verified, so it is a requirement rather than a wish.
 | NFR-05 | **Resilience:** an AI outage, rate limit or bad answer never stops the user recording an expense. | Tests with a fake server for retries, backoff, circuit breaker, timeouts and fallback. | ✅ |
 | NFR-06 | **Privacy:** no expense data leaves the computer unless the user sets an API key. | Factory test: without a key, only the offline suggester exists. | ✅ |
 | NFR-07 | **Portability:** builds and passes tests on macOS and Linux. | CI runs on Ubuntu and macOS for every push. | ✅ |
-| NFR-08 | **Maintainability:** classes stay small, loosely coupled and cohesive; changes are covered by tests. | CKJM measured before and after each release ([METRICS.md](METRICS.md)); 112 automated tests. | ✅ |
+| NFR-08 | **Maintainability:** classes stay small, loosely coupled and cohesive; changes are covered by tests. | CKJM measured before and after each release ([METRICS.md](METRICS.md)); 125 automated tests. | ✅ |
 | NFR-09 | **Consistency:** money looks the same on every computer, whatever its language settings. | Test formats under a German locale. | ✅ |
 | NFR-10 | **Usability:** common actions have shortcuts; empty screens and errors say what to do next. | Main window reviewed on screen; not yet checked with other users or UI tests. | 🔄 |

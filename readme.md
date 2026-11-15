@@ -11,7 +11,7 @@ index-backed queries**.
 
 | | Original | Now |
 |---|--:|--:|
-| Automated tests | 0 | **112** (unit + integration) |
+| Automated tests | 0 | **125** (unit + integration) |
 | CI | none | Linux + macOS on every push |
 
 ## Using the app
@@ -135,7 +135,7 @@ flowchart LR
 mvn test
 ```
 
-112 tests, all independent of the UI:
+125 tests, all independent of the UI:
 - **Integration tests** against a real SQLite file in a temp directory. Repositories take the month
   as a parameter, so month boundaries are deterministic (first and last day, December to January).
 - **Category rules:** case-insensitive duplicates rejected by the database, renames carried through

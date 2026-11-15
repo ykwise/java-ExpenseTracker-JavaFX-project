@@ -1,5 +1,13 @@
 # Architecture
 
+## Use cases
+
+![Use case diagram](diagrams/use-cases.svg)
+
+Source: [diagrams/use-cases.puml](diagrams/use-cases.puml) (PlantUML). Recording or editing an
+expense always includes the budget check; the category suggestion extends recording when the
+user types a description, and only calls the Claude API if a key is configured.
+
 ## Before (original project)
 
 Every controller called static methods on one `DatabaseManager`, which also returned a

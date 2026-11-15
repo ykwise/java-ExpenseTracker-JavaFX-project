@@ -166,8 +166,20 @@ mvn javafx:run
 The model defaults to `claude-haiku-5-5`; set `EXPENSE_AI_MODEL` to use another.
 
 The window title shows "(AI suggestions on)" when a key is configured. Descriptions are sent to the
-API only when a key is set; otherwise everything stays on your machine. The database file defaults
-to `expenses.db` in the working directory; override with `-Dexpensetracker.db=/path/to/file.db`.
+API only when a key is set; otherwise everything stays on your machine.
+
+**Where your data is:** one SQLite file in your user's application data folder, whichever folder
+the app is started from:
+
+| OS | Location |
+|---|---|
+| macOS | `~/Library/Application Support/ExpenseTracker/expenses.db` |
+| Windows | `%APPDATA%\ExpenseTracker\expenses.db` |
+| Linux | `$XDG_DATA_HOME/expense-tracker/expenses.db` (default `~/.local/share/expense-tracker/`) |
+
+Back it up by copying that file. To use a different file, start with
+`-Dexpensetracker.db=/path/to/file.db`. Earlier versions kept `expenses.db` in the project folder;
+on first start it is copied to the new location and the original is left as a backup.
 
 ## Known limitations and next steps
 - **Money is stored as `double`.** Fine for a personal tracker, but sums can show rounding artefacts

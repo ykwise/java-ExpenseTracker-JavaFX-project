@@ -18,9 +18,6 @@ import javafx.util.Callback;
  */
 public class MainApp extends Application {
 
-    /** Override with -Dexpensetracker.db=/path/to/file.db to use a different database file. */
-    static final String DB_PATH = System.getProperty("expensetracker.db", "expenses.db");
-
     private AsyncSuggester suggester;
 
     @Override
@@ -32,7 +29,10 @@ public class MainApp extends Application {
             Alerts.error("Something went wrong", userMessage(error));
         });
 
-        Database database = new Database("jdbc:sqlite:" + DB_PATH);
+        // A fixed per-user location, so starting the app from another folder can't
+        // open an empty database (see DataLocation for the rules and legacy copy)
+        DataLocation.Result location = DataLocation.resolve();
+        Database database = new Database("jdbc:sqlite:" + location.databaseFile());
         database.initialize();
         ExpenseRepository expenses = new ExpenseRepository(database);
         BudgetRepository budgets = new BudgetRepository(database);
@@ -70,6 +70,11 @@ public class MainApp extends Application {
         primaryStage.setTitle(Suggesters.aiEnabled(System.getenv())
                 ? "Expense Tracker (AI suggestions on)" : "Expense Tracker");
         primaryStage.show();
+
+        location.copiedFrom().ifPresent(from -> Alerts.info("Your data has moved",
+                "Expense Tracker now keeps its data in one place, whichever folder it is started from:\n"
+                        + location.databaseFile() + "\n\nYour existing data was copied there. The old file was left "
+                        + "untouched as a backup:\n" + from));
     }
 
     /** Graceful shutdown: called by JavaFX when the window closes. */

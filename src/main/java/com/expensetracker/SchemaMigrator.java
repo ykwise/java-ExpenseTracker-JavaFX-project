@@ -50,7 +50,14 @@ final class SchemaMigrator {
             // lets SQLite range-scan within a category instead of reading every row.
             List.of(
                     "CREATE INDEX IF NOT EXISTS idx_expenses_category_date ON Expenses (category_id, date)",
-                    "CREATE INDEX IF NOT EXISTS idx_expenses_date ON Expenses (date)"));
+                    "CREATE INDEX IF NOT EXISTS idx_expenses_date ON Expenses (date)"),
+
+            // v4: key/value settings, starting with the display currency.
+            List.of(
+                    "CREATE TABLE IF NOT EXISTS Settings ("
+                            + " key TEXT PRIMARY KEY,"
+                            + " value TEXT NOT NULL)",
+                    "INSERT OR IGNORE INTO Settings (key, value) VALUES ('currency', 'KES')"));
 
     private SchemaMigrator() {
     }

@@ -36,6 +36,7 @@ public class MainApp extends Application {
         database.initialize();
         ExpenseRepository expenses = new ExpenseRepository(database);
         BudgetRepository budgets = new BudgetRepository(database);
+        SettingsRepository settings = new SettingsRepository(database);
 
         // Category suggestions: Claude if ANTHROPIC_API_KEY is set, offline keywords otherwise.
         // Work runs on a background thread; results are handed back to the JavaFX thread.
@@ -47,10 +48,10 @@ public class MainApp extends Application {
             @Override
             public Object call(Class<?> type) {
                 if (type == MainViewController.class) {
-                    return new MainViewController(expenses, budgets, this);
+                    return new MainViewController(expenses, budgets, settings, this);
                 }
                 if (type == AddExpenseController.class) {
-                    return new AddExpenseController(expenses, budgets, asyncSuggester);
+                    return new AddExpenseController(expenses, budgets, settings, asyncSuggester);
                 }
                 throw new IllegalArgumentException("No controller registered for " + type);
             }

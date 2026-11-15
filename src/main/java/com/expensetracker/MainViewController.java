@@ -22,6 +22,7 @@ import javafx.scene.control.ButtonType;
 import javafx.scene.control.ChoiceDialog;
 import javafx.scene.control.Label;
 import javafx.scene.control.ProgressBar;
+import javafx.scene.control.TableCell;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableView;
 import javafx.scene.control.TextInputDialog;
@@ -52,15 +53,18 @@ public class MainViewController {
 
     private final ExpenseRepository expenses;
     private final BudgetRepository budgets;
+    private final SettingsRepository settings;
     private final Callback<Class<?>, Object> controllerFactory;
+    private MoneyFormat money = new MoneyFormat(SettingsRepository.DEFAULT_CURRENCY);
 
     /**
      * @param controllerFactory builds controllers for dialogs, so they get their dependencies too
      */
     public MainViewController(ExpenseRepository expenses, BudgetRepository budgets,
-                              Callback<Class<?>, Object> controllerFactory) {
+                              SettingsRepository settings, Callback<Class<?>, Object> controllerFactory) {
         this.expenses = expenses;
         this.budgets = budgets;
+        this.settings = settings;
         this.controllerFactory = controllerFactory;
     }
 
@@ -69,12 +73,20 @@ public class MainViewController {
         dateColumn.setCellValueFactory(new PropertyValueFactory<>("date"));
         categoryColumn.setCellValueFactory(new PropertyValueFactory<>("category"));
         amountColumn.setCellValueFactory(new PropertyValueFactory<>("amount"));
+        amountColumn.setCellFactory(column -> new TableCell<>() {
+            @Override
+            protected void updateItem(Double amount, boolean empty) {
+                super.updateItem(amount, empty);
+                setText(empty || amount == null ? null : money.format(amount));
+            }
+        });
         descriptionColumn.setCellValueFactory(new PropertyValueFactory<>("description"));
         refreshAll();
     }
 
     // Keeps table, chart and budget panel consistent after any change
     private void refreshAll() {
+        money = settings.moneyFormat();
         loadExpenseData();
         loadChartData();
         refreshBudgets();
@@ -134,8 +146,8 @@ public class MainViewController {
         Alert confirm = new Alert(Alert.AlertType.CONFIRMATION);
         confirm.setTitle("Delete Expense");
         confirm.setHeaderText("Are you sure you want to delete this expense?");
-        confirm.setContentText(String.format("%s: %s - %.2f",
-                selected.getDate(), selected.getCategory(), selected.getAmount()));
+        confirm.setContentText(String.format("%s: %s - %s",
+                selected.getDate(), selected.getCategory(), money.format(selected.getAmount())));
 
         confirm.showAndWait().ifPresent(response -> {
             if (response == ButtonType.OK) {
@@ -157,7 +169,7 @@ public class MainViewController {
 
         ObservableList<PieChart.Data> slices = FXCollections.observableArrayList();
         totals.forEach((category, total) ->
-                slices.add(new PieChart.Data(String.format("%s (%.0f)", category, total), total)));
+                slices.add(new PieChart.Data(category + " (" + money.format(total) + ")", total)));
 
         chart.setData(slices);
         chart.setTitle(totals.isEmpty() ? "No expenses this month" : "Monthly Expenses by Category");
@@ -219,8 +231,8 @@ public class MainViewController {
         }
 
         for (BudgetSummary summary : summaries) {
-            Label label = new Label(String.format("%s: %.2f / %.2f (%.0f%%)",
-                    summary.category(), summary.spent(), summary.monthlyLimit(), summary.usedRatio() * 100));
+            Label label = new Label(String.format("%s: %s / %s (%.0f%%)", summary.category(),
+                    money.format(summary.spent()), money.format(summary.monthlyLimit()), summary.usedRatio() * 100));
 
             ProgressBar bar = new ProgressBar(Math.min(summary.usedRatio(), 1.0));
             bar.setMaxWidth(Double.MAX_VALUE);
@@ -236,6 +248,25 @@ public class MainViewController {
             case WARNING:  return "#f0ad4e"; // amber
             default:       return "#5cb85c"; // green
         }
+    }
+
+    // ------------------------------------------------------------- settings
+
+    @FXML
+    private void handleSettings() {
+        List<String> choices = new java.util.ArrayList<>(SettingsRepository.COMMON_CURRENCIES);
+        String current = settings.getCurrency();
+        if (!choices.contains(current)) {
+            choices.add(0, current);
+        }
+        ChoiceDialog<String> dialog = new ChoiceDialog<>(current, choices);
+        dialog.setTitle("Settings");
+        dialog.setHeaderText("Display currency");
+        dialog.setContentText("Currency:");
+        dialog.showAndWait().ifPresent(code -> {
+            settings.setCurrency(code);
+            refreshAll();
+        });
     }
 
     // --------------------------------------------------------------- export

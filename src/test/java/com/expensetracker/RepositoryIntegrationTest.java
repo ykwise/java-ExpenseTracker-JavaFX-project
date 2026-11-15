@@ -38,6 +38,7 @@ class RepositoryIntegrationTest {
     private String url;
     private ExpenseRepository repo;
     private BudgetRepository budgets;
+    private SettingsRepository settings;
 
     @BeforeEach
     void setUp() {
@@ -46,6 +47,7 @@ class RepositoryIntegrationTest {
         db.initialize();
         repo = new ExpenseRepository(db);
         budgets = new BudgetRepository(db);
+        settings = new SettingsRepository(db);
     }
 
     // ---------------------------------------------------------------- schema
@@ -158,6 +160,26 @@ class RepositoryIntegrationTest {
         assertEquals(List.of(
                 new BudgetSummary("Food", 1000, 850),
                 new BudgetSummary("Transport", 500, 0)), budgets.getBudgetSummaries());
+    }
+
+    // -------------------------------------------------------------- settings
+
+    @Test
+    void currency_defaultsToKes() {
+        assertEquals("KES", settings.getCurrency());
+        assertEquals("KES 10.00", settings.moneyFormat().format(10));
+    }
+
+    @Test
+    void setCurrency_normalisesAndPersists() {
+        settings.setCurrency(" usd ");
+        assertEquals("USD", settings.getCurrency());
+    }
+
+    @Test
+    void setCurrency_rejectsUnknownCodes() {
+        assertThrows(IllegalArgumentException.class, () -> settings.setCurrency("XYZ1"));
+        assertEquals("KES", settings.getCurrency());
     }
 
     // ----------------------------------------------------------- constraints

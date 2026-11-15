@@ -30,6 +30,7 @@ public class AddExpenseController {
 
     private final ExpenseRepository expenses;
     private final BudgetRepository budgets;
+    private final SettingsRepository settings;
     private final AsyncSuggester suggester;
     private Stage dialogStage;
     private Integer expenseId = null; // null means "Add" mode, a value means "Edit" mode
@@ -40,9 +41,11 @@ public class AddExpenseController {
     private boolean userChoseCategory = false;    // never override a category the user picked
     private boolean applyingSuggestion = false;   // distinguishes our setValue from the user's
 
-    public AddExpenseController(ExpenseRepository expenses, BudgetRepository budgets, AsyncSuggester suggester) {
+    public AddExpenseController(ExpenseRepository expenses, BudgetRepository budgets,
+                                SettingsRepository settings, AsyncSuggester suggester) {
         this.expenses = expenses;
         this.budgets = budgets;
+        this.settings = settings;
         this.suggester = suggester;
     }
 
@@ -158,11 +161,13 @@ public class AddExpenseController {
 
         if (status == BudgetStatus.WARNING || status == BudgetStatus.EXCEEDED) {
             double limit = budget.getAsDouble();
+            MoneyFormat money = settings.moneyFormat();
             Alerts.warning("Budget Alert",
                     status == BudgetStatus.EXCEEDED
                             ? category + " budget exceeded"
                             : category + " budget almost used up",
-                    String.format("Spent %.2f of %.2f this month (%.0f%%).", spent, limit, spent / limit * 100));
+                    String.format("Spent %s of %s this month (%.0f%%).",
+                            money.format(spent), money.format(limit), spent / limit * 100));
         }
     }
 

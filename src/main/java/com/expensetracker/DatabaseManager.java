@@ -6,39 +6,38 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.OptionalDouble;
 import java.sql.ResultSet;
 import java.sql.PreparedStatement;
-import org.jfree.data.general.DefaultPieDataset;
 
 
 public class DatabaseManager {
 	
-	public static DefaultPieDataset getMonthlyCategorySummary() {
-	    DefaultPieDataset dataset = new DefaultPieDataset();
+	// Total spent per category in the current month, for the pie chart
+	public static Map<String, Double> getMonthlyCategorySummary() {
+	    Map<String, Double> totals = new LinkedHashMap<>();
 
-	    // SQL query to get the sum of amounts for each category for the current month.
 	    String sql = "SELECT c.name as category, SUM(e.amount) as total " +
 	                 "FROM Expenses e " +
 	                 "JOIN Categories c ON e.category_id = c.id " +
 	                 "WHERE strftime('%Y-%m', e.date) = strftime('%Y-%m', 'now', 'localtime') " +
-	                 "GROUP BY c.name";
+	                 "GROUP BY c.name ORDER BY c.name";
 
 	    try (Connection conn = DriverManager.getConnection(URL);
 	         Statement stmt = conn.createStatement();
 	         ResultSet rs = stmt.executeQuery(sql)) {
 
 	        while (rs.next()) {
-	            String category = rs.getString("category");
-	            double total = rs.getDouble("total");
-	            dataset.setValue(category, total);
+	            totals.put(rs.getString("category"), rs.getDouble("total"));
 	        }
 	    } catch (SQLException e) {
 	        System.out.println(e.getMessage());
 	    }
 
-	    return dataset;
+	    return totals;
 	}
 	
 	// updates expense

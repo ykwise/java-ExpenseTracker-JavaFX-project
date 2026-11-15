@@ -15,6 +15,8 @@ import javafx.stage.Stage;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Map;
+import javafx.scene.chart.PieChart;
 import javafx.scene.control.Alert;
 import java.util.Optional;
 import javafx.scene.control.Label;
@@ -24,12 +26,6 @@ import java.util.OptionalDouble;
 import javafx.scene.control.ChoiceDialog;
 import javafx.scene.control.TextInputDialog;
 import javafx.scene.control.ButtonType;
-import javafx.embed.swing.SwingNode;
-import javax.swing.SwingUtilities;
-import org.jfree.chart.ChartFactory;
-import org.jfree.chart.ChartPanel;
-import org.jfree.chart.JFreeChart;
-import org.jfree.data.general.DefaultPieDataset;
 import javafx.stage.FileChooser;
 import java.io.File;
 import java.io.FileWriter;
@@ -85,29 +81,18 @@ public class MainViewController {
 	}
 	
 	@FXML
-	private SwingNode chartNode;
-	
-	
+	private PieChart chart;
+
+	// Fills the native JavaFX pie chart with this month's totals per category
 	private void loadChartData() {
-	    // Get the dataset from the database
-	    DefaultPieDataset dataset = DatabaseManager.getMonthlyCategorySummary();
+	    Map<String, Double> totals = DatabaseManager.getMonthlyCategorySummary();
 
-	    // Create the pie chart
-	    JFreeChart pieChart = ChartFactory.createPieChart(
-	        "Monthly Expenses by Category", // Chart title
-	        dataset,                       // Data
-	        true,                          // Include legend
-	        true,
-	        false
-	    );
+	    ObservableList<PieChart.Data> slices = FXCollections.observableArrayList();
+	    totals.forEach((category, total) ->
+	            slices.add(new PieChart.Data(String.format("%s (%.0f)", category, total), total)));
 
-	    // Creating panel to hold the chart
-	    ChartPanel chartPanel = new ChartPanel(pieChart);
-
-	    
-	    SwingUtilities.invokeLater(() -> {
-	        chartNode.setContent(chartPanel);
-	    });
+	    chart.setData(slices);
+	    chart.setTitle(totals.isEmpty() ? "No expenses this month" : "Monthly Expenses by Category");
 	}
 	
 	

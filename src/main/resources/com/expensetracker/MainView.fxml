@@ -8,7 +8,7 @@
 <?import javafx.scene.layout.BorderPane?>
 <?import javafx.scene.layout.VBox?>
 <?import javafx.scene.text.Font?>
-<?import javafx.embed.swing.SwingNode?>
+<?import javafx.scene.chart.PieChart?>
 
 <BorderPane prefHeight="500.0" prefWidth="800.0" xmlns="http://javafx.com/javafx/17" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.expensetracker.MainViewController">
    <left>
@@ -47,7 +47,7 @@
               <Font name="System Bold" size="18.0" />
            </font>
         </Label>
-        <SwingNode fx:id="chartNode" />
+        <PieChart fx:id="chart" legendVisible="true" labelsVisible="true" prefHeight="320.0" />
         <Label text="Budgets This Month">
            <font>
               <Font name="System Bold" size="16.0" />

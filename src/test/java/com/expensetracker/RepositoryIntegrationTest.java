@@ -22,10 +22,11 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
 /**
- * Integration tests: a real SQLite database in a temporary file, fresh for each test.
+ * Integration tests for Database, ExpenseRepository and BudgetRepository:
+ * a real SQLite database in a temporary file, fresh for each test.
  * "Today" is pinned to 15 Nov 2026 so month-based queries give the same answer on any day.
  */
-class ExpenseRepositoryTest {
+class RepositoryIntegrationTest {
 
     private static final LocalDate TODAY = LocalDate.of(2026, 11, 15);
     private static final Clock CLOCK =
@@ -36,12 +37,15 @@ class ExpenseRepositoryTest {
 
     private String url;
     private ExpenseRepository repo;
+    private BudgetRepository budgets;
 
     @BeforeEach
     void setUp() {
         url = "jdbc:sqlite:" + tempDir.resolve("test.db");
-        repo = new ExpenseRepository(url, CLOCK);
-        repo.initialize();
+        Database db = new Database(url, CLOCK);
+        db.initialize();
+        repo = new ExpenseRepository(db);
+        budgets = new BudgetRepository(db);
     }
 
     // ---------------------------------------------------------------- schema
@@ -54,7 +58,7 @@ class ExpenseRepositoryTest {
 
     @Test
     void initialize_isSafeToRunTwice() {
-        repo.initialize();
+        new Database(url, CLOCK).initialize();
         assertEquals(5, repo.getAllCategoryNames().size());
     }
 
@@ -114,23 +118,23 @@ class ExpenseRepositoryTest {
 
     @Test
     void getBudget_isEmptyWhenNotSet() {
-        assertFalse(repo.getBudget("Food").isPresent());
+        assertFalse(budgets.getBudget("Food").isPresent());
     }
 
     @Test
     void setBudget_isIdempotentUpsert() {
-        repo.setBudget("Food", 5000);
-        repo.setBudget("Food", 5000);
-        repo.setBudget("Food", 6000);
+        budgets.setBudget("Food", 5000);
+        budgets.setBudget("Food", 5000);
+        budgets.setBudget("Food", 6000);
 
-        assertEquals(OptionalDouble.of(6000), repo.getBudget("Food"));
-        assertEquals(1, repo.getBudgetSummaries().size());
+        assertEquals(OptionalDouble.of(6000), budgets.getBudget("Food"));
+        assertEquals(1, budgets.getBudgetSummaries().size());
     }
 
     @Test
     void setBudget_rejectsZeroOrNegative() {
-        assertThrows(IllegalArgumentException.class, () -> repo.setBudget("Food", 0));
-        assertThrows(IllegalArgumentException.class, () -> repo.setBudget("Food", -5));
+        assertThrows(IllegalArgumentException.class, () -> budgets.setBudget("Food", 0));
+        assertThrows(IllegalArgumentException.class, () -> budgets.setBudget("Food", -5));
     }
 
     @Test
@@ -140,20 +144,20 @@ class ExpenseRepositoryTest {
         repo.addExpense(TODAY, "Transport", 1000, "");
         repo.addExpense(TODAY.minusMonths(1), "Food", 1000, "");
 
-        assertEquals(500, repo.getMonthlySpent("Food"));
-        assertEquals(0, repo.getMonthlySpent("Utilities"));
+        assertEquals(500, budgets.getMonthlySpent("Food"));
+        assertEquals(0, budgets.getMonthlySpent("Utilities"));
     }
 
     @Test
     void budgetSummaries_includeUnspentBudgetsAndSkipUnbudgetedCategories() {
-        repo.setBudget("Food", 1000);
-        repo.setBudget("Transport", 500);
+        budgets.setBudget("Food", 1000);
+        budgets.setBudget("Transport", 500);
         repo.addExpense(TODAY, "Food", 850, "");
         repo.addExpense(TODAY, "Other", 50, ""); // no budget: not listed
 
         assertEquals(List.of(
                 new BudgetSummary("Food", 1000, 850),
-                new BudgetSummary("Transport", 500, 0)), repo.getBudgetSummaries());
+                new BudgetSummary("Transport", 500, 0)), budgets.getBudgetSummaries());
     }
 
     // ----------------------------------------------------------- constraints

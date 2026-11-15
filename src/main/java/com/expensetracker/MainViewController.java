@@ -50,15 +50,17 @@ public class MainViewController {
     @FXML
     private VBox budgetBox;
 
-    private final ExpenseRepository repository;
+    private final ExpenseRepository expenses;
+    private final BudgetRepository budgets;
     private final Callback<Class<?>, Object> controllerFactory;
 
     /**
-     * @param repository        data access for the whole window
      * @param controllerFactory builds controllers for dialogs, so they get their dependencies too
      */
-    public MainViewController(ExpenseRepository repository, Callback<Class<?>, Object> controllerFactory) {
-        this.repository = repository;
+    public MainViewController(ExpenseRepository expenses, BudgetRepository budgets,
+                              Callback<Class<?>, Object> controllerFactory) {
+        this.expenses = expenses;
+        this.budgets = budgets;
         this.controllerFactory = controllerFactory;
     }
 
@@ -137,21 +139,21 @@ public class MainViewController {
 
         confirm.showAndWait().ifPresent(response -> {
             if (response == ButtonType.OK) {
-                repository.deleteExpense(selected.getId());
+                expenses.deleteExpense(selected.getId());
                 refreshAll();
             }
         });
     }
 
     private void loadExpenseData() {
-        expenseTable.setItems(FXCollections.observableArrayList(repository.getAllExpenses()));
+        expenseTable.setItems(FXCollections.observableArrayList(expenses.getAllExpenses()));
     }
 
     // ---------------------------------------------------------------- chart
 
     // Fills the native JavaFX pie chart with this month's totals per category
     private void loadChartData() {
-        Map<String, Double> totals = repository.getMonthlyCategorySummary();
+        Map<String, Double> totals = expenses.getMonthlyCategorySummary();
 
         ObservableList<PieChart.Data> slices = FXCollections.observableArrayList();
         totals.forEach((category, total) ->
@@ -166,7 +168,7 @@ public class MainViewController {
     // Lets the user pick a category and set (or change) its monthly budget
     @FXML
     private void handleSetBudget() {
-        List<String> categories = repository.getAllCategoryNames();
+        List<String> categories = expenses.getAllCategoryNames();
         if (categories.isEmpty()) {
             return;
         }
@@ -180,7 +182,7 @@ public class MainViewController {
             return; // user cancelled
         }
 
-        OptionalDouble current = repository.getBudget(category.get());
+        OptionalDouble current = budgets.getBudget(category.get());
         TextInputDialog amountDialog = new TextInputDialog(
                 current.isPresent() ? String.format("%.2f", current.getAsDouble()) : "");
         amountDialog.setTitle("Set Budget");
@@ -202,14 +204,14 @@ public class MainViewController {
             return;
         }
 
-        repository.setBudget(category.get(), limit);
+        budgets.setBudget(category.get(), limit);
         refreshBudgets();
     }
 
     // Rebuilds the "Budgets This Month" panel: one label + progress bar per budgeted category
     private void refreshBudgets() {
         budgetBox.getChildren().clear();
-        List<BudgetSummary> summaries = repository.getBudgetSummaries();
+        List<BudgetSummary> summaries = budgets.getBudgetSummaries();
 
         if (summaries.isEmpty()) {
             budgetBox.getChildren().add(new Label("No budgets set. Click \"Set Budget\" to add one."));
@@ -250,7 +252,7 @@ public class MainViewController {
         }
 
         try (Writer writer = new FileWriter(file, StandardCharsets.UTF_8)) {
-            CsvExporter.write(repository.getAllExpenses(), writer);
+            CsvExporter.write(expenses.getAllExpenses(), writer);
             Alerts.info("Export Successful", "Expenses successfully exported to " + file.getName());
         } catch (IOException e) {
             Alerts.error("Could not save file", "An error occurred while exporting the data: " + e.getMessage());

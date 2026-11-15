@@ -32,8 +32,10 @@ public class MainApp extends Application {
             Alerts.error("Something went wrong", userMessage(error));
         });
 
-        ExpenseRepository repository = new ExpenseRepository("jdbc:sqlite:" + DB_PATH);
-        repository.initialize();
+        Database database = new Database("jdbc:sqlite:" + DB_PATH);
+        database.initialize();
+        ExpenseRepository expenses = new ExpenseRepository(database);
+        BudgetRepository budgets = new BudgetRepository(database);
 
         // Category suggestions: Claude if ANTHROPIC_API_KEY is set, offline keywords otherwise.
         // Work runs on a background thread; results are handed back to the JavaFX thread.
@@ -45,10 +47,10 @@ public class MainApp extends Application {
             @Override
             public Object call(Class<?> type) {
                 if (type == MainViewController.class) {
-                    return new MainViewController(repository, this);
+                    return new MainViewController(expenses, budgets, this);
                 }
                 if (type == AddExpenseController.class) {
-                    return new AddExpenseController(repository, asyncSuggester);
+                    return new AddExpenseController(expenses, budgets, asyncSuggester);
                 }
                 throw new IllegalArgumentException("No controller registered for " + type);
             }

@@ -28,7 +28,8 @@ public class AddExpenseController {
     @FXML
     private Label suggestionLabel;
 
-    private final ExpenseRepository repository;
+    private final ExpenseRepository expenses;
+    private final BudgetRepository budgets;
     private final AsyncSuggester suggester;
     private Stage dialogStage;
     private Integer expenseId = null; // null means "Add" mode, a value means "Edit" mode
@@ -39,14 +40,15 @@ public class AddExpenseController {
     private boolean userChoseCategory = false;    // never override a category the user picked
     private boolean applyingSuggestion = false;   // distinguishes our setValue from the user's
 
-    public AddExpenseController(ExpenseRepository repository, AsyncSuggester suggester) {
-        this.repository = repository;
+    public AddExpenseController(ExpenseRepository expenses, BudgetRepository budgets, AsyncSuggester suggester) {
+        this.expenses = expenses;
+        this.budgets = budgets;
         this.suggester = suggester;
     }
 
     @FXML
     private void initialize() {
-        categoryComboBox.getItems().addAll(repository.getAllCategoryNames());
+        categoryComboBox.getItems().addAll(expenses.getAllCategoryNames());
         datePicker.setValue(LocalDate.now()); // most expenses are entered on the day
 
         categoryComboBox.valueProperty().addListener((obs, oldValue, newValue) -> {
@@ -135,9 +137,9 @@ public class AddExpenseController {
         String description = descriptionField.getText();
 
         if (expenseId == null) {
-            repository.addExpense(date, category, amount, description);
+            expenses.addExpense(date, category, amount, description);
         } else {
-            repository.updateExpense(expenseId, date, category, amount, description);
+            expenses.updateExpense(expenseId, date, category, amount, description);
         }
 
         showBudgetAlertIfNeeded(date, category);
@@ -150,8 +152,8 @@ public class AddExpenseController {
             return; // budgets are monthly; expenses in other months don't affect this month's budget
         }
 
-        OptionalDouble budget = repository.getBudget(category);
-        double spent = repository.getMonthlySpent(category);
+        OptionalDouble budget = budgets.getBudget(category);
+        double spent = budgets.getMonthlySpent(category);
         BudgetStatus status = BudgetService.evaluate(spent, budget);
 
         if (status == BudgetStatus.WARNING || status == BudgetStatus.EXCEEDED) {

@@ -1,206 +1,172 @@
 package com.expensetracker;
 
-import javafx.collections.FXCollections;
-import javafx.collections.ObservableList;
-import javafx.fxml.FXML;
-import javafx.scene.control.TableColumn;
-import javafx.scene.control.TableView;
-import javafx.scene.control.cell.PropertyValueFactory;
+import java.io.File;
+import java.io.FileWriter;
 import java.io.IOException;
-import javafx.fxml.FXMLLoader;
-import javafx.scene.Scene;
-import javafx.scene.layout.GridPane;
-import javafx.stage.Modality;
-import javafx.stage.Stage;
-
+import java.io.Writer;
+import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
+import java.util.OptionalDouble;
+import javafx.collections.FXCollections;
+import javafx.collections.ObservableList;
+import javafx.fxml.FXML;
+import javafx.fxml.FXMLLoader;
+import javafx.scene.Parent;
+import javafx.scene.Scene;
 import javafx.scene.chart.PieChart;
 import javafx.scene.control.Alert;
-import java.util.Optional;
+import javafx.scene.control.ButtonType;
+import javafx.scene.control.ChoiceDialog;
 import javafx.scene.control.Label;
 import javafx.scene.control.ProgressBar;
-import javafx.scene.layout.VBox;
-import java.util.OptionalDouble;
-import javafx.scene.control.ChoiceDialog;
+import javafx.scene.control.TableColumn;
+import javafx.scene.control.TableView;
 import javafx.scene.control.TextInputDialog;
-import javafx.scene.control.ButtonType;
+import javafx.scene.control.cell.PropertyValueFactory;
+import javafx.scene.layout.VBox;
 import javafx.stage.FileChooser;
-import java.io.File;
-import java.io.FileWriter;
+import javafx.stage.Modality;
+import javafx.stage.Stage;
+import javafx.util.Callback;
 
+/** Controller for the main window: expense table, pie chart and budget panel. */
 public class MainViewController {
-	
-	@FXML
-	private void handleExportToCSV() {
-	    FileChooser fileChooser = new FileChooser();
-	    fileChooser.setTitle("Save Expenses as CSV");
 
-	    // Set extension filter
-	    FileChooser.ExtensionFilter extFilter = new FileChooser.ExtensionFilter("CSV files (*.csv)", "*.csv");
-	    fileChooser.getExtensionFilters().add(extFilter);
+    @FXML
+    private TableView<Expense> expenseTable;
+    @FXML
+    private TableColumn<Expense, LocalDate> dateColumn;
+    @FXML
+    private TableColumn<Expense, String> categoryColumn;
+    @FXML
+    private TableColumn<Expense, Double> amountColumn;
+    @FXML
+    private TableColumn<Expense, String> descriptionColumn;
+    @FXML
+    private PieChart chart;
+    @FXML
+    private VBox budgetBox;
 
-	    // Show save file dialog
-	    File file = fileChooser.showSaveDialog(expenseTable.getScene().getWindow());
+    private final ExpenseRepository repository;
+    private final Callback<Class<?>, Object> controllerFactory;
 
-	    if (file != null) {
-	        // Use try-with-resources to ensure the writer is closed
-	        try (FileWriter writer = new FileWriter(file)) {
-	            // Write the CSV header
-	            writer.append("Date,Category,Amount,Description\n");
+    /**
+     * @param repository        data access for the whole window
+     * @param controllerFactory builds controllers for dialogs, so they get their dependencies too
+     */
+    public MainViewController(ExpenseRepository repository, Callback<Class<?>, Object> controllerFactory) {
+        this.repository = repository;
+        this.controllerFactory = controllerFactory;
+    }
 
-	            // Get all expenses from the database
-	            List<Expense> expenses = DatabaseManager.getAllExpenses();
+    @FXML
+    private void initialize() {
+        dateColumn.setCellValueFactory(new PropertyValueFactory<>("date"));
+        categoryColumn.setCellValueFactory(new PropertyValueFactory<>("category"));
+        amountColumn.setCellValueFactory(new PropertyValueFactory<>("amount"));
+        descriptionColumn.setCellValueFactory(new PropertyValueFactory<>("description"));
+        refreshAll();
+    }
 
-	            // Write each expense to the file
-	            for (Expense exp : expenses) {
-	                writer.append(exp.getDate().toString() + ",");
-	                writer.append(exp.getCategory() + ",");
-	                writer.append(String.valueOf(exp.getAmount()) + ",");
-	                // Handle potential commas in the description by replacing them
-	                writer.append(exp.getDescription().replace(",", ";") + "\n");
-	            }
+    // Keeps table, chart and budget panel consistent after any change
+    private void refreshAll() {
+        loadExpenseData();
+        loadChartData();
+        refreshBudgets();
+    }
 
-	            // Show a success message
-	            Alert alert = new Alert(Alert.AlertType.INFORMATION);
-	            alert.setTitle("Export Successful");
-	            alert.setHeaderText(null);
-	            alert.setContentText("Expenses successfully exported to " + file.getName());
-	            alert.showAndWait();
+    // ------------------------------------------------------------- expenses
 
-	        } catch (IOException e) {
-	            // Show an error message
-	            Alert alert = new Alert(Alert.AlertType.ERROR);
-	            alert.setTitle("Export Error");
-	            alert.setHeaderText("Could not save file");
-	            alert.setContentText("An error occurred while exporting the data: " + e.getMessage());
-	            alert.showAndWait();
-	        }
-	    }
-	}
-	
-	@FXML
-	private PieChart chart;
+    @FXML
+    private void handleAddExpense() {
+        openExpenseDialog(null);
+    }
 
-	// Fills the native JavaFX pie chart with this month's totals per category
-	private void loadChartData() {
-	    Map<String, Double> totals = DatabaseManager.getMonthlyCategorySummary();
+    @FXML
+    private void handleEditExpense() {
+        Expense selected = expenseTable.getSelectionModel().getSelectedItem();
+        if (selected == null) {
+            Alerts.warning("No Selection", "No Expense Selected", "Please select an expense in the table to edit.");
+            return;
+        }
+        openExpenseDialog(selected);
+    }
 
-	    ObservableList<PieChart.Data> slices = FXCollections.observableArrayList();
-	    totals.forEach((category, total) ->
-	            slices.add(new PieChart.Data(String.format("%s (%.0f)", category, total), total)));
+    // One method for both Add and Edit (they previously duplicated ~25 lines each)
+    private void openExpenseDialog(Expense toEdit) {
+        try {
+            FXMLLoader loader = new FXMLLoader(MainApp.class.getResource("AddExpenseView.fxml"));
+            loader.setControllerFactory(controllerFactory);
+            Parent page = loader.load();
 
-	    chart.setData(slices);
-	    chart.setTitle(totals.isEmpty() ? "No expenses this month" : "Monthly Expenses by Category");
-	}
-	
-	
-	@FXML
-	private void handleEditExpense() {
-	    // Get the selected expense from the table
-	    Expense selectedExpense = expenseTable.getSelectionModel().getSelectedItem();
+            Stage dialogStage = new Stage();
+            dialogStage.setTitle(toEdit == null ? "Add New Expense" : "Edit Expense");
+            dialogStage.initModality(Modality.WINDOW_MODAL);
+            dialogStage.initOwner(expenseTable.getScene().getWindow());
+            dialogStage.setScene(new Scene(page));
 
-	    if (selectedExpense != null) {
-	        try {
-	            // Load the fxml file
-	            FXMLLoader loader = new FXMLLoader();
-	            loader.setLocation(MainApp.class.getResource("AddExpenseView.fxml"));
-	            GridPane page = (GridPane) loader.load();
+            AddExpenseController controller = loader.getController();
+            controller.setDialogStage(dialogStage);
+            if (toEdit != null) {
+                controller.loadExpenseData(toEdit);
+            }
 
-	            // Create the dialog Stage
-	            Stage dialogStage = new Stage();
-	            dialogStage.setTitle("Edit Expense");
-	            dialogStage.initModality(Modality.WINDOW_MODAL);
-	            Scene scene = new Scene(page);
-	            dialogStage.setScene(scene);
+            dialogStage.showAndWait();
+            refreshAll();
+        } catch (IOException e) {
+            Alerts.error("Could not open the expense form", e.getMessage());
+        }
+    }
 
-	            
-	            // Get the controller and pass the selected expense data to it
-	            AddExpenseController controller = loader.getController();
-	            controller.setDialogStage(dialogStage);
-	            controller.loadExpenseData(selectedExpense); // We will create this method next
-	            
+    @FXML
+    private void handleDeleteExpense() {
+        Expense selected = expenseTable.getSelectionModel().getSelectedItem();
+        if (selected == null) {
+            Alerts.warning("No Selection", "No Expense Selected", "Please select an expense in the table to delete.");
+            return;
+        }
 
-	            // Show the dialog and wait
-	            dialogStage.showAndWait();
+        Alert confirm = new Alert(Alert.AlertType.CONFIRMATION);
+        confirm.setTitle("Delete Expense");
+        confirm.setHeaderText("Are you sure you want to delete this expense?");
+        confirm.setContentText(String.format("%s: %s - %.2f",
+                selected.getDate(), selected.getCategory(), selected.getAmount()));
 
-	            // Refresh the table, chart and budgets after the dialog is closed
-	            refreshAll();
+        confirm.showAndWait().ifPresent(response -> {
+            if (response == ButtonType.OK) {
+                repository.deleteExpense(selected.getId());
+                refreshAll();
+            }
+        });
+    }
 
-	        } catch (IOException e) {
-	            e.printStackTrace();
-	        }
-	    } else {
-	        // Nothing selected
-	        Alert alert = new Alert(Alert.AlertType.WARNING);
-	        alert.setTitle("No Selection");
-	        alert.setHeaderText("No Expense Selected");
-	        alert.setContentText("Please select an expense in the table to edit.");
-	        alert.showAndWait();
-	    }
-	}
-	
-	
-	@FXML
-	private void handleDeleteExpense() {
-	    Expense selectedExpense = expenseTable.getSelectionModel().getSelectedItem();
+    private void loadExpenseData() {
+        expenseTable.setItems(FXCollections.observableArrayList(repository.getAllExpenses()));
+    }
 
-	    if (selectedExpense != null) {
-	        Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
-	        alert.setTitle("Delete Expense");
-	        alert.setHeaderText("Are you sure you want to delete this expense?");
-	        alert.setContentText(selectedExpense.getDate() + ": " + selectedExpense.getCategory() + " - $" + selectedExpense.getAmount());
+    // ---------------------------------------------------------------- chart
 
-	        alert.showAndWait().ifPresent(response -> {
-	            if (response == ButtonType.OK) {
-	                DatabaseManager.deleteExpense(selectedExpense.getId());
-	                refreshAll();
-	            }
-	        });
-	       
-	    } else {
-	        // Nothing selected
-	        Alert alert = new Alert(Alert.AlertType.WARNING);
-	        alert.setTitle("No Selection");
-	        alert.setHeaderText("No Expense Selected");
-	        alert.setContentText("Please select an expense in the table to delete.");
-	        alert.showAndWait();
-	    }
-	    
-	}
-	
-	
-	@FXML
-	private void handleAddExpense() {
-	    try {
-	        FXMLLoader loader = new FXMLLoader();
-	        loader.setLocation(MainApp.class.getResource("AddExpenseView.fxml"));
-	        GridPane page = (GridPane) loader.load();
+    // Fills the native JavaFX pie chart with this month's totals per category
+    private void loadChartData() {
+        Map<String, Double> totals = repository.getMonthlyCategorySummary();
 
-	        Stage dialogStage = new Stage();
-	        dialogStage.setTitle("Add New Expense");
-	        dialogStage.initModality(Modality.WINDOW_MODAL);
-	        Scene scene = new Scene(page);
-	        dialogStage.setScene(scene);
+        ObservableList<PieChart.Data> slices = FXCollections.observableArrayList();
+        totals.forEach((category, total) ->
+                slices.add(new PieChart.Data(String.format("%s (%.0f)", category, total), total)));
 
-	        
-	        AddExpenseController controller = loader.getController();
-	        controller.setDialogStage(dialogStage);
-	        
+        chart.setData(slices);
+        chart.setTitle(totals.isEmpty() ? "No expenses this month" : "Monthly Expenses by Category");
+    }
 
-	        dialogStage.showAndWait();
-	        refreshAll();
-
-	    } catch (IOException e) {
-	        e.printStackTrace();
-	    }
-	}
+    // -------------------------------------------------------------- budgets
 
     // Lets the user pick a category and set (or change) its monthly budget
     @FXML
     private void handleSetBudget() {
-        List<String> categories = DatabaseManager.getAllCategoryNames();
+        List<String> categories = repository.getAllCategoryNames();
         if (categories.isEmpty()) {
             return;
         }
@@ -214,7 +180,7 @@ public class MainViewController {
             return; // user cancelled
         }
 
-        OptionalDouble current = DatabaseManager.getBudget(category.get());
+        OptionalDouble current = repository.getBudget(category.get());
         TextInputDialog amountDialog = new TextInputDialog(
                 current.isPresent() ? String.format("%.2f", current.getAsDouble()) : "");
         amountDialog.setTitle("Set Budget");
@@ -225,63 +191,25 @@ public class MainViewController {
             return; // user cancelled
         }
 
+        double limit;
         try {
-            double limit = Double.parseDouble(input.get().trim());
-            if (limit <= 0) {
-                throw new NumberFormatException();
-            }
-            DatabaseManager.setBudget(category.get(), limit);
-            refreshBudgets();
+            limit = Double.parseDouble(input.get().trim());
         } catch (NumberFormatException e) {
-            Alert alert = new Alert(Alert.AlertType.ERROR);
-            alert.setTitle("Invalid Budget");
-            alert.setHeaderText("Invalid amount");
-            alert.setContentText("Please enter a number greater than 0.");
-            alert.showAndWait();
+            limit = -1;
         }
-    }
+        if (limit <= 0) {
+            Alerts.error("Invalid amount", "Please enter a number greater than 0.");
+            return;
+        }
 
-    @FXML
-    private TableView<Expense> expenseTable;
-
-    @FXML
-    private TableColumn<Expense, LocalDate> dateColumn;
-
-    @FXML
-    private TableColumn<Expense, String> categoryColumn;
-
-    @FXML
-    private TableColumn<Expense, Double> amountColumn;
-
-    @FXML
-    private TableColumn<Expense, String> descriptionColumn;
-
-    // This method is automatically called after the fxml file has been loaded.
-    @FXML
-    private void initialize() {
-        // Set up the columns in the table
-        dateColumn.setCellValueFactory(new PropertyValueFactory<>("date"));
-        categoryColumn.setCellValueFactory(new PropertyValueFactory<>("category"));
-        amountColumn.setCellValueFactory(new PropertyValueFactory<>("amount"));
-        descriptionColumn.setCellValueFactory(new PropertyValueFactory<>("description"));
-
-        // Load the expense data, chart and budget overview
-        refreshAll();
-    }
-
-    private void refreshAll() {
-        loadExpenseData();
-        loadChartData();
+        repository.setBudget(category.get(), limit);
         refreshBudgets();
     }
-
-    @FXML
-    private VBox budgetBox;
 
     // Rebuilds the "Budgets This Month" panel: one label + progress bar per budgeted category
     private void refreshBudgets() {
         budgetBox.getChildren().clear();
-        List<BudgetSummary> summaries = DatabaseManager.getBudgetSummaries();
+        List<BudgetSummary> summaries = repository.getBudgetSummaries();
 
         if (summaries.isEmpty()) {
             budgetBox.getChildren().add(new Label("No budgets set. Click \"Set Budget\" to add one."));
@@ -308,10 +236,24 @@ public class MainViewController {
         }
     }
 
-    // Method to load data from the database and populate the table
-    private void loadExpenseData() {
-        List<Expense> expenseList = DatabaseManager.getAllExpenses();
-        ObservableList<Expense> observableExpenseList = FXCollections.observableArrayList(expenseList);
-        expenseTable.setItems(observableExpenseList);
+    // --------------------------------------------------------------- export
+
+    @FXML
+    private void handleExportToCSV() {
+        FileChooser fileChooser = new FileChooser();
+        fileChooser.setTitle("Save Expenses as CSV");
+        fileChooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("CSV files (*.csv)", "*.csv"));
+
+        File file = fileChooser.showSaveDialog(expenseTable.getScene().getWindow());
+        if (file == null) {
+            return; // user cancelled
+        }
+
+        try (Writer writer = new FileWriter(file, StandardCharsets.UTF_8)) {
+            CsvExporter.write(repository.getAllExpenses(), writer);
+            Alerts.info("Export Successful", "Expenses successfully exported to " + file.getName());
+        } catch (IOException e) {
+            Alerts.error("Could not save file", "An error occurred while exporting the data: " + e.getMessage());
+        }
     }
 }

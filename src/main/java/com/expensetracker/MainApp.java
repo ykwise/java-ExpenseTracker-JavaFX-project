@@ -31,9 +31,20 @@ public class MainApp extends Application {
 
         // A fixed per-user location, so starting the app from another folder can't
         // open an empty database (see DataLocation for the rules and legacy copy)
-        DataLocation.Result location = DataLocation.resolve();
-        Database database = new Database("jdbc:sqlite:" + location.databaseFile());
-        database.initialize();
+        DataLocation.Result location;
+        Database database;
+        try {
+            location = DataLocation.resolve();
+            database = new Database("jdbc:sqlite:" + location.databaseFile());
+            database.initialize();
+        } catch (IOException | RuntimeException e) {
+            // Without a database the app can't do anything useful: say why on screen, then quit,
+            // instead of exiting with a stack trace only visible in a terminal
+            e.printStackTrace();
+            Alerts.error("Expense Tracker couldn't start", startupErrorMessage(e));
+            Platform.exit();
+            return;
+        }
         ExpenseRepository expenses = new ExpenseRepository(database);
         BudgetRepository budgets = new BudgetRepository(database);
         SettingsRepository settings = new SettingsRepository(database);
@@ -83,6 +94,15 @@ public class MainApp extends Application {
         if (suggester != null) {
             suggester.close();
         }
+    }
+
+    /** What the user sees if the database can't be opened or upgraded at start-up. */
+    static String startupErrorMessage(Throwable error) {
+        String location = System.getProperty(DataLocation.OVERRIDE_PROPERTY);
+        return userMessage(error) + "."
+                + "\n\nIf Expense Tracker is already open in another window, close it and try again."
+                + (location != null ? "\n\nDatabase file: " + location : "")
+                + "\n\nYour data has not been changed.";
     }
 
     // FXML handlers wrap exceptions (RuntimeException -> InvocationTargetException -> ...),

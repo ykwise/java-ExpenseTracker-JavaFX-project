@@ -13,6 +13,7 @@ Changes on top of the original project ([ykwise/java-ExpenseTracker-JavaFX-proje
 - Keyboard shortcuts: ⌘N add, ⌘F search, ⌘← / ⌘→ change month, Enter edit, ⌫ delete. Double-click a row to edit; right-click for Edit / Delete.
 - Saving an expense dated in another month switches the view to that month.
 - Architecture decision records in `docs/adr/`.
+- Product vision, product backlog (user stories, acceptance criteria, MoSCoW, non-functional requirements), sprint reviews and retrospectives, a risk register and a use case diagram in `docs/`.
 
 ### Changed
 - New visual design: one stylesheet (`app.css`) with a calm ledger palette, colour used only for meaning (within budget, near the limit, over).

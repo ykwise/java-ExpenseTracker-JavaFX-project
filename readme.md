@@ -121,7 +121,10 @@ flowchart LR
     A --> C["Cache"] --> L["Claude client<br/>retry · breaker · timeout"] --> K["Keyword fallback"]
 ```
 
-- Class and sequence diagrams: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
+- What the product is for and who it serves: [docs/PRODUCT_VISION.md](docs/PRODUCT_VISION.md)
+- User stories, acceptance criteria, MoSCoW priorities and non-functional requirements: [docs/BACKLOG.md](docs/BACKLOG.md)
+- Sprint goals, reviews and retrospectives: [docs/SPRINTS.md](docs/SPRINTS.md); risks: [docs/RISKS.md](docs/RISKS.md)
+- Use case, class and sequence diagrams: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
 - Why things are the way they are: [docs/adr/](docs/adr/README.md) (architecture decision records)
 - CKJM metrics before and after, and the refactors they triggered: [docs/METRICS.md](docs/METRICS.md)
 - What changed in each version: [CHANGELOG.md](CHANGELOG.md)

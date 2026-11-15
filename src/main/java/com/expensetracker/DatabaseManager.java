@@ -188,6 +188,29 @@ public class DatabaseManager {
 	    return 0;
 	}
 
+	// Every category that has a budget, with this month's spend (0 if nothing spent yet)
+	public static List<BudgetSummary> getBudgetSummaries() {
+	    String sql = "SELECT c.name AS category, b.monthly_limit AS monthly_limit, "
+	               + "COALESCE(SUM(e.amount), 0) AS spent "
+	               + "FROM Budgets b "
+	               + "JOIN Categories c ON b.category_id = c.id "
+	               + "LEFT JOIN Expenses e ON e.category_id = c.id "
+	               + "AND strftime('%Y-%m', e.date) = strftime('%Y-%m', 'now', 'localtime') "
+	               + "GROUP BY c.name, b.monthly_limit ORDER BY c.name";
+	    List<BudgetSummary> summaries = new ArrayList<>();
+	    try (Connection conn = DriverManager.getConnection(URL);
+	         Statement stmt = conn.createStatement();
+	         ResultSet rs = stmt.executeQuery(sql)) {
+	        while (rs.next()) {
+	            summaries.add(new BudgetSummary(rs.getString("category"),
+	                    rs.getDouble("monthly_limit"), rs.getDouble("spent")));
+	        }
+	    } catch (SQLException e) {
+	        System.out.println(e.getMessage());
+	    }
+	    return summaries;
+	}
+
     private static final String URL = "jdbc:sqlite:expenses.db";
 
     public static void initializeDatabase() {

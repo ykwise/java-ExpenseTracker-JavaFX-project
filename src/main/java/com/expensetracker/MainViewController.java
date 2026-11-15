@@ -17,6 +17,9 @@ import java.time.LocalDate;
 import java.util.List;
 import javafx.scene.control.Alert;
 import java.util.Optional;
+import javafx.scene.control.Label;
+import javafx.scene.control.ProgressBar;
+import javafx.scene.layout.VBox;
 import java.util.OptionalDouble;
 import javafx.scene.control.ChoiceDialog;
 import javafx.scene.control.TextInputDialog;
@@ -137,8 +140,8 @@ public class MainViewController {
 	            // Show the dialog and wait
 	            dialogStage.showAndWait();
 
-	            // Refresh the table after the dialog is closed
-	            loadExpenseData();
+	            // Refresh the table, chart and budgets after the dialog is closed
+	            refreshAll();
 
 	        } catch (IOException e) {
 	            e.printStackTrace();
@@ -151,7 +154,6 @@ public class MainViewController {
 	        alert.setContentText("Please select an expense in the table to edit.");
 	        alert.showAndWait();
 	    }
-	    loadChartData();
 	}
 	
 	
@@ -168,8 +170,7 @@ public class MainViewController {
 	        alert.showAndWait().ifPresent(response -> {
 	            if (response == ButtonType.OK) {
 	                DatabaseManager.deleteExpense(selectedExpense.getId());
-	                loadExpenseData();
-	                loadChartData(); 
+	                refreshAll();
 	            }
 	        });
 	       
@@ -204,12 +205,11 @@ public class MainViewController {
 	        
 
 	        dialogStage.showAndWait();
-	        loadExpenseData();
+	        refreshAll();
 
 	    } catch (IOException e) {
 	        e.printStackTrace();
 	    }
-	    loadChartData();
 	}
 
     // Lets the user pick a category and set (or change) its monthly budget
@@ -246,6 +246,7 @@ public class MainViewController {
                 throw new NumberFormatException();
             }
             DatabaseManager.setBudget(category.get(), limit);
+            refreshBudgets();
         } catch (NumberFormatException e) {
             Alert alert = new Alert(Alert.AlertType.ERROR);
             alert.setTitle("Invalid Budget");
@@ -279,9 +280,47 @@ public class MainViewController {
         amountColumn.setCellValueFactory(new PropertyValueFactory<>("amount"));
         descriptionColumn.setCellValueFactory(new PropertyValueFactory<>("description"));
 
-        // Load the expense data
+        // Load the expense data, chart and budget overview
+        refreshAll();
+    }
+
+    private void refreshAll() {
         loadExpenseData();
         loadChartData();
+        refreshBudgets();
+    }
+
+    @FXML
+    private VBox budgetBox;
+
+    // Rebuilds the "Budgets This Month" panel: one label + progress bar per budgeted category
+    private void refreshBudgets() {
+        budgetBox.getChildren().clear();
+        List<BudgetSummary> summaries = DatabaseManager.getBudgetSummaries();
+
+        if (summaries.isEmpty()) {
+            budgetBox.getChildren().add(new Label("No budgets set. Click \"Set Budget\" to add one."));
+            return;
+        }
+
+        for (BudgetSummary summary : summaries) {
+            Label label = new Label(String.format("%s: %.2f / %.2f (%.0f%%)",
+                    summary.category(), summary.spent(), summary.monthlyLimit(), summary.usedRatio() * 100));
+
+            ProgressBar bar = new ProgressBar(Math.min(summary.usedRatio(), 1.0));
+            bar.setMaxWidth(Double.MAX_VALUE);
+            bar.setStyle("-fx-accent: " + colorFor(summary.status()) + ";");
+
+            budgetBox.getChildren().add(new VBox(2, label, bar));
+        }
+    }
+
+    private static String colorFor(BudgetService.BudgetStatus status) {
+        switch (status) {
+            case EXCEEDED: return "#d9534f"; // red
+            case WARNING:  return "#f0ad4e"; // amber
+            default:       return "#5cb85c"; // green
+        }
     }
 
     // Method to load data from the database and populate the table

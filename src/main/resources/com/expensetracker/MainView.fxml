@@ -48,6 +48,12 @@
            </font>
         </Label>
         <SwingNode fx:id="chartNode" />
+        <Label text="Budgets This Month">
+           <font>
+              <Font name="System Bold" size="16.0" />
+           </font>
+        </Label>
+        <VBox fx:id="budgetBox" spacing="8.0" />
      </children>
   </VBox>
 </right>

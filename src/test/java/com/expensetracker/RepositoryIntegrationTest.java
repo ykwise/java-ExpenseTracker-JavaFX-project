@@ -37,6 +37,7 @@ class RepositoryIntegrationTest {
     private ExpenseRepository repo;
     private BudgetRepository budgets;
     private SettingsRepository settings;
+    private CategoryRepository categories;
 
     @BeforeEach
     void setUp() {
@@ -46,6 +47,7 @@ class RepositoryIntegrationTest {
         repo = new ExpenseRepository(db);
         budgets = new BudgetRepository(db);
         settings = new SettingsRepository(db);
+        categories = new CategoryRepository(db);
     }
 
     // ---------------------------------------------------------------- schema
@@ -53,13 +55,13 @@ class RepositoryIntegrationTest {
     @Test
     void initialize_createsDefaultCategories() {
         assertEquals(List.of("Entertainment", "Food", "Other", "Transport", "Utilities"),
-                repo.getAllCategoryNames());
+                categories.getAllNames());
     }
 
     @Test
     void initialize_isSafeToRunTwice() {
         new Database(url).initialize();
-        assertEquals(5, repo.getAllCategoryNames().size());
+        assertEquals(5, categories.getAllNames().size());
     }
 
     // -------------------------------------------------------------- expenses
@@ -211,6 +213,71 @@ class RepositoryIntegrationTest {
     void setCurrency_rejectsUnknownCodes() {
         assertThrows(IllegalArgumentException.class, () -> settings.setCurrency("XYZ1"));
         assertEquals("KES", settings.getCurrency());
+    }
+
+    // ------------------------------------------------------------ categories
+
+    @Test
+    void addCategory_appearsInSortedList() {
+        categories.add("  Health  ");
+        assertEquals(List.of("Entertainment", "Food", "Health", "Other", "Transport", "Utilities"),
+                categories.getAllNames());
+    }
+
+    @Test
+    void addCategory_rejectsDuplicatesIgnoringCase() {
+        IllegalArgumentException e = assertThrows(IllegalArgumentException.class, () -> categories.add("food"));
+        assertTrue(e.getMessage().contains("already exists"), e.getMessage());
+    }
+
+    @Test
+    void addCategory_rejectsBlankAndTooLong() {
+        assertThrows(IllegalArgumentException.class, () -> categories.add("   "));
+        assertThrows(IllegalArgumentException.class, () -> categories.add("x".repeat(41)));
+    }
+
+    @Test
+    void renameCategory_updatesExistingExpensesAndBudgets() {
+        repo.addExpense(TODAY, "Food", 100, "Lunch");
+        budgets.setBudget("Food", 1000);
+
+        categories.rename("Food", "Groceries");
+
+        assertEquals("Groceries", repo.getAllExpenses().get(0).getCategory());
+        assertEquals(List.of(new BudgetSummary("Groceries", 1000, 100)), budgets.getBudgetSummaries(THIS_MONTH));
+    }
+
+    @Test
+    void renameCategory_cannotTakeAnExistingName() {
+        assertThrows(IllegalArgumentException.class, () -> categories.rename("Food", "TRANSPORT"));
+        assertTrue(categories.getAllNames().contains("Food"));
+    }
+
+    @Test
+    void deleteCategory_inUse_isRefusedAndNothingChanges() {
+        repo.addExpense(TODAY, "Food", 100, "");
+        repo.addExpense(TODAY, "Food", 200, "");
+        budgets.setBudget("Food", 1000);
+
+        IllegalArgumentException e = assertThrows(IllegalArgumentException.class, () -> categories.delete("Food"));
+        assertTrue(e.getMessage().contains("2 expenses"), e.getMessage());
+        assertTrue(categories.getAllNames().contains("Food"));
+        assertTrue(budgets.getBudget("Food").isPresent(), "budget must survive the refused delete");
+    }
+
+    @Test
+    void deleteCategory_unused_removesItsBudgetInTheSameTransaction() {
+        budgets.setBudget("Entertainment", 500);
+
+        categories.delete("Entertainment");
+
+        assertFalse(categories.getAllNames().contains("Entertainment"));
+        assertTrue(budgets.getBudgetSummaries(THIS_MONTH).isEmpty());
+    }
+
+    @Test
+    void deleteCategory_unknownName_fails() {
+        assertThrows(IllegalArgumentException.class, () -> categories.delete("Nope"));
     }
 
     // ----------------------------------------------------------- constraints

@@ -31,6 +31,7 @@ public class AddExpenseController {
     private final ExpenseRepository expenses;
     private final BudgetRepository budgets;
     private final SettingsRepository settings;
+    private final CategoryRepository categories;
     private final AsyncSuggester suggester;
     private Stage dialogStage;
     private Integer expenseId = null; // null means "Add" mode, a value means "Edit" mode
@@ -41,17 +42,18 @@ public class AddExpenseController {
     private boolean userChoseCategory = false;    // never override a category the user picked
     private boolean applyingSuggestion = false;   // distinguishes our setValue from the user's
 
-    public AddExpenseController(ExpenseRepository expenses, BudgetRepository budgets,
+    public AddExpenseController(ExpenseRepository expenses, BudgetRepository budgets, CategoryRepository categories,
                                 SettingsRepository settings, AsyncSuggester suggester) {
         this.expenses = expenses;
         this.budgets = budgets;
+        this.categories = categories;
         this.settings = settings;
         this.suggester = suggester;
     }
 
     @FXML
     private void initialize() {
-        categoryComboBox.getItems().addAll(expenses.getAllCategoryNames());
+        categoryComboBox.getItems().addAll(categories.getAllNames());
         datePicker.setValue(LocalDate.now()); // most expenses are entered on the day
 
         categoryComboBox.valueProperty().addListener((obs, oldValue, newValue) -> {

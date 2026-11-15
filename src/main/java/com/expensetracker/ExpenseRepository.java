@@ -13,7 +13,7 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Reads and writes expenses and categories.
+ * Reads and writes expenses.
  *
  * Failures throw {@link DataAccessException} instead of being printed and ignored,
  * so the UI can tell the user something went wrong.
@@ -24,22 +24,6 @@ public class ExpenseRepository {
 
     public ExpenseRepository(Database db) {
         this.db = db;
-    }
-
-    // ------------------------------------------------------------ categories
-
-    public List<String> getAllCategoryNames() {
-        List<String> names = new ArrayList<>();
-        try (Connection conn = db.connect();
-             Statement stmt = conn.createStatement();
-             ResultSet rs = stmt.executeQuery("SELECT name FROM Categories ORDER BY name")) {
-            while (rs.next()) {
-                names.add(rs.getString("name"));
-            }
-        } catch (SQLException e) {
-            throw new DataAccessException("Could not load categories", e);
-        }
-        return names;
     }
 
     // -------------------------------------------------------------- expenses

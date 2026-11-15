@@ -50,6 +50,9 @@ class SchemaMigratorTest {
             try (ResultSet rs = stmt.executeQuery("SELECT COUNT(*) FROM Categories")) {
                 assertEquals(5, rs.getInt(1)); // existing 'Food' kept, the other defaults added
             }
+            try (ResultSet rs = stmt.executeQuery("SELECT value FROM Settings WHERE key = 'currency'")) {
+                assertEquals("KES", rs.getString(1));
+            }
         }
     }
 

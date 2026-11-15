@@ -85,16 +85,18 @@ public class MainViewController {
     private final ExpenseRepository expenses;
     private final BudgetRepository budgets;
     private final SettingsRepository settings;
+    private final CategoryRepository categories;
     private final Callback<Class<?>, Object> controllerFactory;
     private MoneyFormat money = new MoneyFormat(SettingsRepository.DEFAULT_CURRENCY);
 
     /**
      * @param controllerFactory builds controllers for dialogs, so they get their dependencies too
      */
-    public MainViewController(ExpenseRepository expenses, BudgetRepository budgets,
+    public MainViewController(ExpenseRepository expenses, BudgetRepository budgets, CategoryRepository categories,
                               SettingsRepository settings, Callback<Class<?>, Object> controllerFactory) {
         this.expenses = expenses;
         this.budgets = budgets;
+        this.categories = categories;
         this.settings = settings;
         this.controllerFactory = controllerFactory;
     }
@@ -230,7 +232,7 @@ public class MainViewController {
         String chosen = categoryFilter.getValue();
         List<String> items = new java.util.ArrayList<>();
         items.add(ALL_CATEGORIES);
-        items.addAll(expenses.getAllCategoryNames());
+        items.addAll(categories.getAllNames());
         categoryFilter.getItems().setAll(items);
         categoryFilter.setValue(items.contains(chosen) ? chosen : ALL_CATEGORIES);
     }
@@ -267,12 +269,12 @@ public class MainViewController {
     // Lets the user pick a category and set (or change) its monthly budget
     @FXML
     private void handleSetBudget() {
-        List<String> categories = expenses.getAllCategoryNames();
-        if (categories.isEmpty()) {
+        List<String> categoryNames = categories.getAllNames();
+        if (categoryNames.isEmpty()) {
             return;
         }
 
-        ChoiceDialog<String> categoryDialog = new ChoiceDialog<>(categories.get(0), categories);
+        ChoiceDialog<String> categoryDialog = new ChoiceDialog<>(categoryNames.get(0), categoryNames);
         categoryDialog.setTitle("Set Budget");
         categoryDialog.setHeaderText("Choose a category");
         categoryDialog.setContentText("Category:");
@@ -335,6 +337,14 @@ public class MainViewController {
             case WARNING:  return "#f0ad4e"; // amber
             default:       return "#5cb85c"; // green
         }
+    }
+
+    // ----------------------------------------------------------- categories
+
+    @FXML
+    private void handleManageCategories() {
+        new CategoryManagerDialog(categories).showAndWait(expenseTable.getScene().getWindow());
+        refreshAll(); // renames show up in the table, filter and budgets straight away
     }
 
     // ------------------------------------------------------------- settings

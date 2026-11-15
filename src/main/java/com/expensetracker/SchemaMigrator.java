@@ -57,7 +57,12 @@ final class SchemaMigrator {
                     "CREATE TABLE IF NOT EXISTS Settings ("
                             + " key TEXT PRIMARY KEY,"
                             + " value TEXT NOT NULL)",
-                    "INSERT OR IGNORE INTO Settings (key, value) VALUES ('currency', 'KES')"));
+                    "INSERT OR IGNORE INTO Settings (key, value) VALUES ('currency', 'KES')"),
+
+            // v5: category names unique regardless of case ("food" vs "Food"), enforced by
+            // the database so no check-then-insert race is possible.
+            List.of(
+                    "CREATE UNIQUE INDEX IF NOT EXISTS idx_categories_name_nocase ON Categories (name COLLATE NOCASE)"));
 
     private SchemaMigrator() {
     }

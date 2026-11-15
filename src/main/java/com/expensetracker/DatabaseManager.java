@@ -7,6 +7,7 @@ import java.sql.Statement;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.OptionalDouble;
 import java.sql.ResultSet;
 import java.sql.PreparedStatement;
 import org.jfree.data.general.DefaultPieDataset;
@@ -138,6 +139,55 @@ public class DatabaseManager {
 	    return expenses;
 	}
 
+
+	// Creates or updates the monthly budget for a category (upsert)
+	public static void setBudget(String categoryName, double monthlyLimit) {
+	    String sql = "INSERT INTO Budgets(category_id, monthly_limit) "
+	               + "VALUES((SELECT id FROM Categories WHERE name = ?), ?) "
+	               + "ON CONFLICT(category_id) DO UPDATE SET monthly_limit = excluded.monthly_limit";
+	    try (Connection conn = DriverManager.getConnection(URL);
+	         PreparedStatement pstmt = conn.prepareStatement(sql)) {
+	        pstmt.setString(1, categoryName);
+	        pstmt.setDouble(2, monthlyLimit);
+	        pstmt.executeUpdate();
+	    } catch (SQLException e) {
+	        System.out.println(e.getMessage());
+	    }
+	}
+
+	// Returns the budget, or empty if none is set for this category
+	public static OptionalDouble getBudget(String categoryName) {
+	    String sql = "SELECT b.monthly_limit FROM Budgets b "
+	               + "JOIN Categories c ON b.category_id = c.id WHERE c.name = ?";
+	    try (Connection conn = DriverManager.getConnection(URL);
+	         PreparedStatement pstmt = conn.prepareStatement(sql)) {
+	        pstmt.setString(1, categoryName);
+	        try (ResultSet rs = pstmt.executeQuery()) {
+	            if (rs.next()) return OptionalDouble.of(rs.getDouble(1));
+	        }
+	    } catch (SQLException e) {
+	        System.out.println(e.getMessage());
+	    }
+	    return OptionalDouble.empty();
+	}
+
+	// Total spent in a category this calendar month
+	public static double getMonthlySpent(String categoryName) {
+	    String sql = "SELECT COALESCE(SUM(e.amount), 0) FROM Expenses e "
+	               + "JOIN Categories c ON e.category_id = c.id "
+	               + "WHERE c.name = ? AND strftime('%Y-%m', e.date) = strftime('%Y-%m', 'now', 'localtime')";
+	    try (Connection conn = DriverManager.getConnection(URL);
+	         PreparedStatement pstmt = conn.prepareStatement(sql)) {
+	        pstmt.setString(1, categoryName);
+	        try (ResultSet rs = pstmt.executeQuery()) {
+	            if (rs.next()) return rs.getDouble(1);
+	        }
+	    } catch (SQLException e) {
+	        System.out.println(e.getMessage());
+	    }
+	    return 0;
+	}
+
     private static final String URL = "jdbc:sqlite:expenses.db";
 
     public static void initializeDatabase() {
@@ -167,11 +217,18 @@ public class DatabaseManager {
                 + " FOREIGN KEY (category_id) REFERENCES Categories (id)\n"
                 + ");";
 
+        String sqlBudgets = "CREATE TABLE IF NOT EXISTS Budgets (\n"
+                + " category_id INTEGER PRIMARY KEY,\n"
+                + " monthly_limit REAL NOT NULL CHECK (monthly_limit > 0),\n"
+                + " FOREIGN KEY (category_id) REFERENCES Categories (id)\n"
+                + ");";
+
         try (Connection conn = DriverManager.getConnection(URL);
              Statement stmt = conn.createStatement()) {
             // Create tables
             stmt.execute(sqlCategories);
             stmt.execute(sqlExpenses);
+            stmt.execute(sqlBudgets);
             System.out.println("Database and tables initialized successfully.");
 
             // Insert default categories if they don't exist

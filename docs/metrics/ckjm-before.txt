@@ -1,0 +1,5 @@
+com.expensetracker.AddExpenseController 6 1 0 10 34 0 1 3
+com.expensetracker.DatabaseManager 8 1 0 2 38 28 3 8
+com.expensetracker.Expense 6 1 0 4 15 5 3 6
+com.expensetracker.MainApp 3 2 0 7 15 3 0 3
+com.expensetracker.MainViewController 10 1 0 31 74 33 0 1

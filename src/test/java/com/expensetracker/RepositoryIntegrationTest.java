@@ -11,9 +11,8 @@ import java.sql.DriverManager;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
-import java.time.Clock;
 import java.time.LocalDate;
-import java.time.ZoneOffset;
+import java.time.YearMonth;
 import java.util.List;
 import java.util.Map;
 import java.util.OptionalDouble;
@@ -24,13 +23,12 @@ import org.junit.jupiter.api.io.TempDir;
 /**
  * Integration tests for Database, ExpenseRepository and BudgetRepository:
  * a real SQLite database in a temporary file, fresh for each test.
- * "Today" is pinned to 15 Nov 2026 so month-based queries give the same answer on any day.
+ * Months are passed explicitly (15 Nov 2026 is "today"), so results are the same on any day.
  */
 class RepositoryIntegrationTest {
 
     private static final LocalDate TODAY = LocalDate.of(2026, 11, 15);
-    private static final Clock CLOCK =
-            Clock.fixed(TODAY.atStartOfDay().toInstant(ZoneOffset.UTC), ZoneOffset.UTC);
+    private static final YearMonth THIS_MONTH = YearMonth.from(TODAY);
 
     @TempDir
     Path tempDir;
@@ -43,7 +41,7 @@ class RepositoryIntegrationTest {
     @BeforeEach
     void setUp() {
         url = "jdbc:sqlite:" + tempDir.resolve("test.db");
-        Database db = new Database(url, CLOCK);
+        Database db = new Database(url);
         db.initialize();
         repo = new ExpenseRepository(db);
         budgets = new BudgetRepository(db);
@@ -60,7 +58,7 @@ class RepositoryIntegrationTest {
 
     @Test
     void initialize_isSafeToRunTwice() {
-        new Database(url, CLOCK).initialize();
+        new Database(url).initialize();
         assertEquals(5, repo.getAllCategoryNames().size());
     }
 
@@ -113,7 +111,40 @@ class RepositoryIntegrationTest {
         repo.addExpense(LocalDate.of(2026, 10, 31), "Food", 999, "");  // last month: excluded
         repo.addExpense(LocalDate.of(2026, 12, 1), "Food", 999, "");   // next month: excluded
 
-        assertEquals(Map.of("Food", 150.0, "Transport", 20.0), repo.getMonthlyCategorySummary());
+        assertEquals(Map.of("Food", 150.0, "Transport", 20.0), repo.getMonthlyCategorySummary(THIS_MONTH));
+    }
+
+    @Test
+    void getExpenses_returnsOnlyTheRequestedMonth() {
+        repo.addExpense(TODAY, "Food", 100, "November");
+        repo.addExpense(LocalDate.of(2026, 10, 31), "Food", 200, "October");
+        repo.addExpense(LocalDate.of(2026, 10, 1), "Food", 300, "October too");
+
+        assertEquals(List.of("November"),
+                repo.getExpenses(THIS_MONTH).stream().map(Expense::getDescription).toList());
+        assertEquals(List.of("October", "October too"),
+                repo.getExpenses(YearMonth.of(2026, 10)).stream().map(Expense::getDescription).toList());
+        assertEquals(3, repo.getAllExpenses().size());
+    }
+
+    @Test
+    void pastMonth_summaryAndBudgetsUseThatMonthsSpending() {
+        budgets.setBudget("Food", 1000);
+        repo.addExpense(LocalDate.of(2026, 10, 10), "Food", 900, "");
+        repo.addExpense(TODAY, "Food", 100, "");
+
+        YearMonth october = YearMonth.of(2026, 10);
+        assertEquals(Map.of("Food", 900.0), repo.getMonthlyCategorySummary(october));
+        assertEquals(List.of(new BudgetSummary("Food", 1000, 900)), budgets.getBudgetSummaries(october));
+        assertEquals(List.of(new BudgetSummary("Food", 1000, 100)), budgets.getBudgetSummaries(THIS_MONTH));
+    }
+
+    @Test
+    void yearBoundary_decemberToJanuary() {
+        repo.addExpense(LocalDate.of(2026, 12, 31), "Food", 10, "");
+        repo.addExpense(LocalDate.of(2027, 1, 1), "Food", 20, "");
+        assertEquals(Map.of("Food", 10.0), repo.getMonthlyCategorySummary(YearMonth.of(2026, 12)));
+        assertEquals(Map.of("Food", 20.0), repo.getMonthlyCategorySummary(YearMonth.of(2027, 1)));
     }
 
     // --------------------------------------------------------------- budgets
@@ -130,7 +161,7 @@ class RepositoryIntegrationTest {
         budgets.setBudget("Food", 6000);
 
         assertEquals(OptionalDouble.of(6000), budgets.getBudget("Food"));
-        assertEquals(1, budgets.getBudgetSummaries().size());
+        assertEquals(1, budgets.getBudgetSummaries(THIS_MONTH).size());
     }
 
     @Test
@@ -146,8 +177,8 @@ class RepositoryIntegrationTest {
         repo.addExpense(TODAY, "Transport", 1000, "");
         repo.addExpense(TODAY.minusMonths(1), "Food", 1000, "");
 
-        assertEquals(500, budgets.getMonthlySpent("Food"));
-        assertEquals(0, budgets.getMonthlySpent("Utilities"));
+        assertEquals(500, budgets.getMonthlySpent("Food", THIS_MONTH));
+        assertEquals(0, budgets.getMonthlySpent("Utilities", THIS_MONTH));
     }
 
     @Test
@@ -159,7 +190,7 @@ class RepositoryIntegrationTest {
 
         assertEquals(List.of(
                 new BudgetSummary("Food", 1000, 850),
-                new BudgetSummary("Transport", 500, 0)), budgets.getBudgetSummaries());
+                new BudgetSummary("Transport", 500, 0)), budgets.getBudgetSummaries(THIS_MONTH));
     }
 
     // -------------------------------------------------------------- settings

@@ -4,6 +4,7 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.time.YearMonth;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.OptionalDouble;
@@ -54,15 +55,15 @@ public class BudgetRepository {
         }
     }
 
-    /** Total spent in a category in the current month (0 if nothing). */
-    public double getMonthlySpent(String categoryName) {
+    /** Total spent in a category in {@code month} (0 if nothing). */
+    public double getMonthlySpent(String categoryName, YearMonth month) {
         String sql = "SELECT COALESCE(SUM(e.amount), 0) FROM Expenses e "
                 + "JOIN Categories c ON e.category_id = c.id "
                 + "WHERE c.name = ? AND " + Database.IN_MONTH;
         try (Connection conn = db.connect();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
             pstmt.setString(1, categoryName);
-            db.bindCurrentMonth(pstmt, 2);
+            db.bindMonth(pstmt, 2, month);
             try (ResultSet rs = pstmt.executeQuery()) {
                 return rs.next() ? rs.getDouble(1) : 0;
             }
@@ -72,11 +73,11 @@ public class BudgetRepository {
     }
 
     /**
-     * Every budgeted category with its spend this month, ordered by category name.
+     * Every budgeted category with its spend in {@code month}, ordered by category name.
      * One query with a LEFT JOIN + GROUP BY, rather than calling getBudget() and
      * getMonthlySpent() per category (the N+1 query pattern: 1 + 2N round trips).
      */
-    public List<BudgetSummary> getBudgetSummaries() {
+    public List<BudgetSummary> getBudgetSummaries(YearMonth month) {
         String sql = "SELECT c.name AS category, b.monthly_limit AS monthly_limit, "
                 + "COALESCE(SUM(e.amount), 0) AS spent "
                 + "FROM Budgets b "
@@ -86,7 +87,7 @@ public class BudgetRepository {
         List<BudgetSummary> summaries = new ArrayList<>();
         try (Connection conn = db.connect();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
-            db.bindCurrentMonth(pstmt, 1);
+            db.bindMonth(pstmt, 1, month);
             try (ResultSet rs = pstmt.executeQuery()) {
                 while (rs.next()) {
                     summaries.add(new BudgetSummary(

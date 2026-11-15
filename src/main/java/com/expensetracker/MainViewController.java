@@ -6,7 +6,10 @@ import java.io.IOException;
 import java.io.Writer;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
+import java.time.YearMonth;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.OptionalDouble;
@@ -18,6 +21,7 @@ import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.scene.chart.PieChart;
 import javafx.scene.control.Alert;
+import javafx.scene.control.Button;
 import javafx.scene.control.ButtonType;
 import javafx.scene.control.ChoiceDialog;
 import javafx.scene.control.Label;
@@ -50,6 +54,17 @@ public class MainViewController {
     private PieChart chart;
     @FXML
     private VBox budgetBox;
+    @FXML
+    private Label monthLabel;
+    @FXML
+    private Label budgetTitle;
+    @FXML
+    private Button thisMonthButton;
+
+    private static final DateTimeFormatter MONTH_TITLE = DateTimeFormatter.ofPattern("MMMM yyyy", Locale.ENGLISH);
+
+    // The month the whole window is showing; table, chart and budgets all follow it
+    private YearMonth selectedMonth = YearMonth.now();
 
     private final ExpenseRepository expenses;
     private final BudgetRepository budgets;
@@ -87,9 +102,33 @@ public class MainViewController {
     // Keeps table, chart and budget panel consistent after any change
     private void refreshAll() {
         money = settings.moneyFormat();
+        String title = selectedMonth.format(MONTH_TITLE);
+        monthLabel.setText(title);
+        budgetTitle.setText("Budgets: " + title);
+        thisMonthButton.setDisable(selectedMonth.equals(YearMonth.now()));
         loadExpenseData();
         loadChartData();
         refreshBudgets();
+    }
+
+    // ---------------------------------------------------------- month navigation
+
+    @FXML
+    private void handlePreviousMonth() {
+        selectedMonth = selectedMonth.minusMonths(1);
+        refreshAll();
+    }
+
+    @FXML
+    private void handleNextMonth() {
+        selectedMonth = selectedMonth.plusMonths(1);
+        refreshAll();
+    }
+
+    @FXML
+    private void handleThisMonth() {
+        selectedMonth = YearMonth.now();
+        refreshAll();
     }
 
     // ------------------------------------------------------------- expenses
@@ -158,21 +197,21 @@ public class MainViewController {
     }
 
     private void loadExpenseData() {
-        expenseTable.setItems(FXCollections.observableArrayList(expenses.getAllExpenses()));
+        expenseTable.setItems(FXCollections.observableArrayList(expenses.getExpenses(selectedMonth)));
     }
 
     // ---------------------------------------------------------------- chart
 
-    // Fills the native JavaFX pie chart with this month's totals per category
+    // Fills the native JavaFX pie chart with the selected month's totals per category
     private void loadChartData() {
-        Map<String, Double> totals = expenses.getMonthlyCategorySummary();
+        Map<String, Double> totals = expenses.getMonthlyCategorySummary(selectedMonth);
 
         ObservableList<PieChart.Data> slices = FXCollections.observableArrayList();
         totals.forEach((category, total) ->
                 slices.add(new PieChart.Data(category + " (" + money.format(total) + ")", total)));
 
         chart.setData(slices);
-        chart.setTitle(totals.isEmpty() ? "No expenses this month" : "Monthly Expenses by Category");
+        chart.setTitle(totals.isEmpty() ? "No expenses in " + selectedMonth.format(MONTH_TITLE) : "Spending by category");
     }
 
     // -------------------------------------------------------------- budgets
@@ -223,7 +262,7 @@ public class MainViewController {
     // Rebuilds the "Budgets This Month" panel: one label + progress bar per budgeted category
     private void refreshBudgets() {
         budgetBox.getChildren().clear();
-        List<BudgetSummary> summaries = budgets.getBudgetSummaries();
+        List<BudgetSummary> summaries = budgets.getBudgetSummaries(selectedMonth);
 
         if (summaries.isEmpty()) {
             budgetBox.getChildren().add(new Label("No budgets set. Click \"Set Budget\" to add one."));

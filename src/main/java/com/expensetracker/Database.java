@@ -6,12 +6,11 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
-import java.time.Clock;
 import java.time.YearMonth;
 
 /**
  * The shared plumbing every repository needs: opening connections (with foreign keys
- * on), running schema migrations, resolving category names and "this month" bounds.
+ * on), running schema migrations, resolving category names and month bounds.
  *
  * Repositories hold a Database rather than a URL, so they share one configuration
  * and tests can point all of them at the same throwaway file.
@@ -25,17 +24,9 @@ public class Database {
     static final String IN_MONTH = "e.date >= ? AND e.date < ?";
 
     private final String url;
-    private final Clock clock;
 
-    /** Uses the system clock to decide what "this month" is. */
     public Database(String url) {
-        this(url, Clock.systemDefaultZone());
-    }
-
-    /** Lets tests pin "today" so month-based queries are deterministic. */
-    public Database(String url, Clock clock) {
         this.url = url;
-        this.clock = clock;
     }
 
     Connection connect() throws SQLException {
@@ -59,9 +50,10 @@ public class Database {
         }
     }
 
-    // Binds the [start, end) bounds of the current month to two consecutive parameters
-    void bindCurrentMonth(PreparedStatement pstmt, int firstIndex) throws SQLException {
-        YearMonth month = YearMonth.now(clock);
+    // Binds the [start, end) bounds of a month to two consecutive parameters.
+    // Repositories take the month as an argument instead of reading the clock, so the
+    // UI decides which month is shown and queries stay deterministic in tests.
+    void bindMonth(PreparedStatement pstmt, int firstIndex, YearMonth month) throws SQLException {
         pstmt.setString(firstIndex, month.atDay(1).toString());
         pstmt.setString(firstIndex + 1, month.plusMonths(1).atDay(1).toString());
     }

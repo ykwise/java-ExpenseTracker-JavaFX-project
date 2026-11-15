@@ -6,6 +6,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.time.LocalDate;
+import java.time.YearMonth;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -43,26 +44,41 @@ public class ExpenseRepository {
 
     // -------------------------------------------------------------- expenses
 
+    /** Every expense, newest first (used for CSV export). */
     public List<Expense> getAllExpenses() {
+        return queryExpenses("", null);
+    }
+
+    /** Expenses dated in {@code month}, newest first. */
+    public List<Expense> getExpenses(YearMonth month) {
+        return queryExpenses("WHERE " + Database.IN_MONTH + " ", month);
+    }
+
+    private List<Expense> queryExpenses(String where, YearMonth month) {
         String sql = "SELECT e.id, e.date, c.name AS category, e.amount, e.description "
                 + "FROM Expenses e JOIN Categories c ON e.category_id = c.id "
+                + where
                 + "ORDER BY e.date DESC, e.id DESC";
-        List<Expense> expenses = new ArrayList<>();
+        List<Expense> result = new ArrayList<>();
         try (Connection conn = db.connect();
-             Statement stmt = conn.createStatement();
-             ResultSet rs = stmt.executeQuery(sql)) {
-            while (rs.next()) {
-                expenses.add(new Expense(
-                        rs.getInt("id"),
-                        LocalDate.parse(rs.getString("date")),
-                        rs.getString("category"),
-                        rs.getDouble("amount"),
-                        rs.getString("description")));
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            if (month != null) {
+                db.bindMonth(pstmt, 1, month);
+            }
+            try (ResultSet rs = pstmt.executeQuery()) {
+                while (rs.next()) {
+                    result.add(new Expense(
+                            rs.getInt("id"),
+                            LocalDate.parse(rs.getString("date")),
+                            rs.getString("category"),
+                            rs.getDouble("amount"),
+                            rs.getString("description")));
+                }
             }
         } catch (SQLException e) {
             throw new DataAccessException("Could not load expenses", e);
         }
-        return expenses;
+        return result;
     }
 
     public void addExpense(LocalDate date, String categoryName, double amount, String description) {
@@ -104,8 +120,8 @@ public class ExpenseRepository {
         }
     }
 
-    /** Total spent per category in the current month, ordered by category name. */
-    public Map<String, Double> getMonthlyCategorySummary() {
+    /** Total spent per category in {@code month}, ordered by category name. */
+    public Map<String, Double> getMonthlyCategorySummary(YearMonth month) {
         String sql = "SELECT c.name AS category, SUM(e.amount) AS total "
                 + "FROM Expenses e JOIN Categories c ON e.category_id = c.id "
                 + "WHERE " + Database.IN_MONTH + " "
@@ -113,7 +129,7 @@ public class ExpenseRepository {
         Map<String, Double> totals = new LinkedHashMap<>();
         try (Connection conn = db.connect();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
-            db.bindCurrentMonth(pstmt, 1);
+            db.bindMonth(pstmt, 1, month);
             try (ResultSet rs = pstmt.executeQuery()) {
                 while (rs.next()) {
                     totals.put(rs.getString("category"), rs.getDouble("total"));

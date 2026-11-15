@@ -151,12 +151,13 @@ public class AddExpenseController {
 
     // Warns (but does not block) when this month's spending in the category nears or passes its budget
     private void showBudgetAlertIfNeeded(LocalDate date, String category) {
-        if (!YearMonth.from(date).equals(YearMonth.now())) {
-            return; // budgets are monthly; expenses in other months don't affect this month's budget
+        YearMonth month = YearMonth.from(date);
+        if (!month.equals(YearMonth.now())) {
+            return; // only warn about the month that is still in progress; past months can't be changed
         }
 
         OptionalDouble budget = budgets.getBudget(category);
-        double spent = budgets.getMonthlySpent(category);
+        double spent = budgets.getMonthlySpent(category, month);
         BudgetStatus status = BudgetService.evaluate(spent, budget);
 
         if (status == BudgetStatus.WARNING || status == BudgetStatus.EXCEEDED) {

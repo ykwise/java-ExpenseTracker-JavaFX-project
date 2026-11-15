@@ -71,14 +71,25 @@ classDiagram
         +addExpense(...)
         +updateExpense(...)
         +deleteExpense(int)
-        +getAllCategoryNames() List~String~
-        +getMonthlyCategorySummary() Map
+        +getExpenses(YearMonth) List~Expense~
+        +getMonthlyCategorySummary(YearMonth) Map
+    }
+    class CategoryRepository {
+        +getAllNames() List~String~
+        +add(String)
+        +rename(String, String)
+        +delete(String)
+    }
+    class SettingsRepository {
+        +getCurrency() String
+        +setCurrency(String)
+        +moneyFormat() MoneyFormat
     }
     class BudgetRepository {
         +setBudget(String, double)
         +getBudget(String) OptionalDouble
-        +getMonthlySpent(String) double
-        +getBudgetSummaries() List~BudgetSummary~
+        +getMonthlySpent(String, YearMonth) double
+        +getBudgetSummaries(YearMonth) List~BudgetSummary~
     }
     class BudgetService {
         +evaluate(double, OptionalDouble)$ BudgetStatus
@@ -124,6 +135,10 @@ classDiagram
 
     ExpenseRepository --> Database
     BudgetRepository --> Database
+    CategoryRepository --> Database
+    SettingsRepository --> Database
+    MainViewController --> CategoryRepository
+    MainViewController --> SettingsRepository
     Database ..> SchemaMigrator
     BudgetRepository ..> BudgetSummary
     BudgetSummary ..> BudgetService
@@ -139,6 +154,25 @@ classDiagram
     LlmCategorySuggester --> CircuitBreaker
     LlmCategorySuggester --> HttpTransport
 ```
+
+## Main window components (1.2)
+
+`MainViewController` tracks the selected month, loads that month's data and hands it to
+components that each own one part of the window.
+
+```mermaid
+flowchart TB
+    MV["MainViewController<br/>selected month, refresh, open dialogs"]
+    MV --> ET["ExpenseTable<br/>columns, filter pipeline, row actions"]
+    ET --> EF["ExpenseFilter<br/>(pure predicate)"]
+    MV --> SS["SummaryStrip"] --> MS["MonthSummary<br/>(pure arithmetic)"]
+    MV --> BP["BudgetPanel"] --> BS["BudgetService<br/>(pure rules)"]
+    MV --> D["BudgetDialog · SettingsDialog ·<br/>CategoryManagerDialog · AddExpense dialog"]
+    MV --> CH["PieChart"]
+```
+
+Each JavaFX component is display-only; the logic it shows (`ExpenseFilter`, `MonthSummary`,
+`BudgetService`) is plain Java and unit-tested without a UI.
 
 ## Saving an expense with a budget check
 

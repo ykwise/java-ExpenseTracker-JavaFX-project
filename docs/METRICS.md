@@ -63,7 +63,80 @@ split into small classes with one job each, instead of growing the existing ones
   methods, so every controller was hard-wired to it and nothing could be tested. CBO counts
   type references; it does not measure testability.
 
-## Before
+
+## Update: after the month view, search, categories and UI redesign (1.2)
+
+Raw output: [`metrics/ckjm-after-1.2.txt`](metrics/ckjm-after-1.2.txt).
+
+| | 1.1 | 1.2 |
+|---|--:|--:|
+| Production classes (top-level) | 24 | 36 |
+| Automated tests | 82 | 112 |
+| Average WMC | 5.6 | 1.5 |
+| Average CBO | 5.9 | 32.2 |
+| Average LCOM | 7.4 | 2.7 |
+| `MainViewController` WMC / CBO / LCOM | 15 / 37 / 51 | 26 / 58 / 181 |
+
+**The metrics stopped a bad design from shipping.** The first version of the redesign put month
+navigation, filtering, keyboard shortcuts, row handling and four dialogs into
+`MainViewController`, which jumped to **WMC 41, CBO 84, LCOM 576**. That was split into
+`ExpenseTable` (the table, filter and row interactions), `SummaryStrip`, `BudgetPanel`,
+`BudgetDialog` and `SettingsDialog`, bringing it back to **26 / 58 / 181**.
+
+**Honest caveats:**
+- `MainViewController` is still worse than in 1.1, because the window genuinely does more.
+  Most of its coupling is to JavaFX control types, which every controller has.
+- CKJM counts each lambda body as a method of the enclosing class. 6 of `MainViewController`'s
+  25 methods, 12 of `ExpenseTable`'s 22 and 12 of `CategoryManagerDialog`'s 20 are lambdas
+  (event handlers), which inflates their WMC and LCOM.
+- LCOM in CKJM grows roughly with the square of the method count, so UI classes with many
+  small handlers score badly even when they have one job.
+- Average coupling rose from 5.9 to 32.2 mostly because the new classes are UI components.
+  The data and domain classes added in 1.2 stay low: `CategoryRepository` CBO 3,
+  `MonthSummary` 6, `ExpenseFilter` 5.
+
+### 1.2 classes
+
+| Class | WMC | DIT | NOC | CBO | RFC | LCOM | Ca | NPM |
+|---|--:|--:|--:|--:|--:|--:|--:|--:|
+| `AddExpenseController` | 15 | 1 | 0 | 29 | 77 | 29 | 2 | 4 |
+| `Alerts` | 5 | 1 | 0 | 4 | 13 | 10 | 5 | 0 |
+| `BudgetDialog` | 3 | 1 | 0 | 9 | 33 | 3 | 1 | 0 |
+| `BudgetPanel` | 3 | 6 | 0 | 11 | 33 | 3 | 1 | 2 |
+| `BudgetRepository` | 5 | 1 | 0 | 3 | 30 | 0 | 5 | 5 |
+| `BudgetService` | 2 | 1 | 0 | 1 | 5 | 1 | 2 | 2 |
+| `BudgetSummary` | 9 | 2 | 0 | 5 | 15 | 16 | 3 | 9 |
+| `CategoryManagerDialog` | 20 | 1 | 0 | 33 | 90 | 130 | 1 | 0 |
+| `CategoryRepository` | 9 | 1 | 0 | 3 | 44 | 6 | 6 | 6 |
+| `CsvExporter` | 3 | 1 | 0 | 2 | 18 | 3 | 1 | 1 |
+| `DataAccessException` | 1 | 4 | 0 | 0 | 2 | 0 | 6 | 1 |
+| `Database` | 5 | 1 | 0 | 3 | 26 | 8 | 5 | 2 |
+| `Expense` | 6 | 1 | 0 | 4 | 15 | 5 | 6 | 6 |
+| `ExpenseFilter` | 14 | 2 | 0 | 5 | 35 | 73 | 1 | 9 |
+| `ExpenseRepository` | 8 | 1 | 0 | 4 | 36 | 0 | 4 | 7 |
+| `ExpenseTable` | 23 | 1 | 0 | 45 | 111 | 217 | 1 | 0 |
+| `MainApp` | 7 | 2 | 0 | 21 | 44 | 17 | 1 | 4 |
+| `MainViewController` | 26 | 1 | 0 | 58 | 146 | 181 | 1 | 1 |
+| `MoneyFormat` | 4 | 1 | 0 | 1 | 9 | 0 | 7 | 4 |
+| `MonthSummary` | 12 | 2 | 0 | 6 | 23 | 42 | 2 | 12 |
+| `SchemaMigrator` | 5 | 1 | 0 | 1 | 28 | 4 | 1 | 0 |
+| `SettingsDialog` | 4 | 1 | 0 | 6 | 25 | 6 | 1 | 0 |
+| `SettingsRepository` | 5 | 1 | 0 | 3 | 23 | 4 | 5 | 4 |
+| `SummaryStrip` | 5 | 6 | 0 | 11 | 38 | 6 | 1 | 2 |
+| `Theme` | 4 | 1 | 0 | 3 | 12 | 0 | 6 | 0 |
+| `suggest.AsyncSuggester` | 8 | 1 | 0 | 3 | 28 | 4 | 3 | 4 |
+| `suggest.CachingCategorySuggester` | 4 | 1 | 0 | 4 | 19 | 0 | 2 | 2 |
+| `suggest.CategorySuggester` | 1 | 1 | 0 | 0 | 1 | 0 | 7 | 1 |
+| `suggest.CircuitBreaker` | 5 | 1 | 0 | 1 | 10 | 0 | 2 | 5 |
+| `suggest.FallbackCategorySuggester` | 2 | 1 | 0 | 1 | 5 | 0 | 1 | 2 |
+| `suggest.HttpTransport` | 4 | 1 | 0 | 4 | 31 | 6 | 2 | 2 |
+| `suggest.Json` | 4 | 1 | 0 | 0 | 19 | 6 | 1 | 0 |
+| `suggest.KeywordCategorySuggester` | 4 | 1 | 0 | 1 | 25 | 4 | 1 | 2 |
+| `suggest.LlmCategorySuggester` | 8 | 1 | 0 | 13 | 56 | 14 | 1 | 1 |
+| `suggest.RetryPolicy` | 5 | 1 | 0 | 0 | 12 | 0 | 2 | 4 |
+| `suggest.Suggesters` | 4 | 1 | 0 | 10 | 23 | 6 | 1 | 2 |
+
+## Before (original project)
 
 | Class | WMC | DIT | NOC | CBO | RFC | LCOM | Ca | NPM |
 |---|--:|--:|--:|--:|--:|--:|--:|--:|
@@ -73,7 +146,7 @@ split into small classes with one job each, instead of growing the existing ones
 | `MainApp` | 3 | 2 | 0 | 7 | 15 | 3 | 0 | 3 |
 | `MainViewController` | 10 | 1 | 0 | 31 | 74 | 33 | 0 | 1 |
 
-## After
+## After 1.1
 
 | Class | WMC | DIT | NOC | CBO | RFC | LCOM | Ca | NPM |
 |---|--:|--:|--:|--:|--:|--:|--:|--:|

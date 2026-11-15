@@ -1,19 +1,33 @@
 # Expense Tracker: budgets, AI categorisation and a hardened data layer
 
 A JavaFX desktop app for tracking personal expenses, extended from a small CRUD project
-into a tested, measured codebase. It adds monthly **category budgets** with alerts,
-**AI-suggested categories** that degrade gracefully when offline, and a data layer with
-**migrations, enforced constraints and index-backed queries**.
+into a tested, measured codebase. It adds monthly **category budgets** with alerts, a
+**month-by-month view** with search and summaries, **AI-suggested categories** that degrade
+gracefully when offline, and a data layer with **migrations, enforced constraints and
+index-backed queries**.
 
 > Built on [ykwise/java-ExpenseTracker-JavaFX-project](https://github.com/ykwise/java-ExpenseTracker-JavaFX-project)
 > (CRUD, pie chart, CSV export). Everything below "What I added" is my work on top of it.
 
 | | Original | Now |
 |---|--:|--:|
-| Automated tests | 0 | **82** (unit + integration) |
-| Average coupling (CKJM CBO) | 10.8 | **5.9** |
-| Average lack of cohesion (CKJM LCOM) | 13.8 | **7.4** |
+| Automated tests | 0 | **112** (unit + integration) |
 | CI | none | Linux + macOS on every push |
+
+## Using the app
+
+- **Months:** use ‹ and › (or ⌘← / ⌘→) to move between months. The table, chart, summary and
+  budgets all show the selected month.
+- **Summary:** the strip at the top shows what you spent, the change from last month, and how
+  many budgets are on track.
+- **Expenses:** **+ Add expense** (⌘N). Double-click a row or press Enter to edit; press ⌫ or
+  right-click to delete. If you save an expense dated in another month, the view switches to it.
+- **Search:** type in the search box (⌘F) to match description, category or amount, and narrow by
+  category with the dropdown. The line under the table shows the total of what is listed.
+- **Budgets:** **Set budget** gives a category a monthly limit. Bars turn amber at 80% and red when over.
+- **Categories:** add, rename or delete your own. A category with expenses can be renamed but not deleted.
+- **Settings:** choose the display currency (default KES).
+- **Export CSV** saves every expense, in all months.
 
 ## What I added
 
@@ -28,6 +42,12 @@ into a tested, measured codebase. It adds monthly **category budgets** with aler
 - With `ANTHROPIC_API_KEY` set it asks Claude; without it, offline keyword rules answer instantly.
 - Claude's reply is only accepted if it exactly matches an existing category, so a
   hallucinated answer can never reach the database.
+
+**Month view, search and categories**
+- Month navigation, a summary strip, search and category filtering, category management,
+  a currency setting and keyboard shortcuts. See the [changelog](CHANGELOG.md).
+- A redesigned UI with one stylesheet: a calm ledger palette where colour only carries meaning
+  (within budget, near the limit, over).
 
 **Fixes to the original**
 - Crash on launch on macOS (Apple Silicon): JavaFX 17.0.6 → 21.0.6.
@@ -91,15 +111,20 @@ Adding them would be complexity without a benefit.
 
 ```mermaid
 flowchart LR
-    UI["Controllers<br/>(JavaFX + FXML)"] --> R["ExpenseRepository<br/>BudgetRepository"]
+    MV["MainViewController<br/>(coordinates)"] --> T["ExpenseTable"]
+    MV --> S["SummaryStrip"]
+    MV --> BP["BudgetPanel"]
+    MV --> R["Expense / Budget / Category /<br/>Settings repositories"]
     R --> DB[("Database<br/>SQLite + migrations")]
-    UI --> B["BudgetService<br/>(pure rules)"]
-    UI --> A["AsyncSuggester<br/>(worker thread)"]
+    MV --> B["BudgetService<br/>(pure rules)"]
+    AE["AddExpenseController"] --> A["AsyncSuggester<br/>(worker thread)"]
     A --> C["Cache"] --> L["Claude client<br/>retry · breaker · timeout"] --> K["Keyword fallback"]
 ```
 
-Full class and sequence diagrams: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
-Before/after CKJM metrics and what they changed: [docs/METRICS.md](docs/METRICS.md).
+- Class and sequence diagrams: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
+- Why things are the way they are: [docs/adr/](docs/adr/README.md) (architecture decision records)
+- CKJM metrics before and after, and the refactors they triggered: [docs/METRICS.md](docs/METRICS.md)
+- What changed in each version: [CHANGELOG.md](CHANGELOG.md)
 
 ## Testing
 
@@ -107,9 +132,11 @@ Before/after CKJM metrics and what they changed: [docs/METRICS.md](docs/METRICS.
 mvn test
 ```
 
-82 tests, all independent of the UI:
-- **Integration tests** against a real SQLite file in a temp directory, with "today" pinned by an
-  injected `Clock` so month boundaries are deterministic (including the first and last day of the month).
+112 tests, all independent of the UI:
+- **Integration tests** against a real SQLite file in a temp directory. Repositories take the month
+  as a parameter, so month boundaries are deterministic (first and last day, December to January).
+- **Category rules:** case-insensitive duplicates rejected by the database, renames carried through
+  to expenses and budgets, and a refused delete leaving everything unchanged.
 - **Migration tests:** fresh database, upgrading a database from the original app without losing data,
   running twice, and full rollback when a migration fails halfway.
 - **Resilience tests** with a fake HTTP transport: retry counts, backoff bounds, `Retry-After`,
@@ -143,11 +170,11 @@ to `expenses.db` in the working directory; override with `-Dexpensetracker.db=/p
 - **Money is stored as `double`.** Fine for a personal tracker, but sums can show rounding artefacts
   such as 0.30000000000000004. The robust fix is `BigDecimal` in code and integer cents in the database,
   done as a migration.
-- **`MainViewController` is the remaining hotspot** (highest coupling and lowest cohesion in CKJM).
-  The next refactor is extracting the budget panel and chart into their own FXML components.
+- **`MainViewController` is still the biggest class.** It was split into components once the
+  metrics flagged it, but it still coordinates a lot; see [docs/METRICS.md](docs/METRICS.md).
 - **No UI tests.** Controllers are thin and the logic beneath them is tested, but TestFX tests for
   the dialogs would close that gap.
 - Budgets are the same every month; per-month budgets would need a `(category_id, month)` key.
 
 ## Tech stack
-Java 17 · JavaFX 21 (FXML) · SQLite (JDBC) · JUnit 5 · Maven · GitHub Actions · Claude API (optional)
+Java 17, JavaFX 21 (FXML + CSS), SQLite (JDBC), JUnit 5, Maven, GitHub Actions, Claude API (optional)

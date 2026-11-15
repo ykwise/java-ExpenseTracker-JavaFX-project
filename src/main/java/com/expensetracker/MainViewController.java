@@ -15,6 +15,8 @@ import java.util.Optional;
 import java.util.OptionalDouble;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
+import javafx.collections.transformation.FilteredList;
+import javafx.collections.transformation.SortedList;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
@@ -24,11 +26,13 @@ import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
 import javafx.scene.control.ButtonType;
 import javafx.scene.control.ChoiceDialog;
+import javafx.scene.control.ComboBox;
 import javafx.scene.control.Label;
 import javafx.scene.control.ProgressBar;
 import javafx.scene.control.TableCell;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableView;
+import javafx.scene.control.TextField;
 import javafx.scene.control.TextInputDialog;
 import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.layout.VBox;
@@ -60,6 +64,18 @@ public class MainViewController {
     private Label budgetTitle;
     @FXML
     private Button thisMonthButton;
+    @FXML
+    private TextField searchField;
+    @FXML
+    private ComboBox<String> categoryFilter;
+    @FXML
+    private Label resultLabel;
+
+    private static final String ALL_CATEGORIES = "All categories";
+
+    // Table pipeline: month's expenses -> filtered by search/category -> sorted by column clicks
+    private final ObservableList<Expense> monthExpenses = FXCollections.observableArrayList();
+    private final FilteredList<Expense> filteredExpenses = new FilteredList<>(monthExpenses);
 
     private static final DateTimeFormatter MONTH_TITLE = DateTimeFormatter.ofPattern("MMMM yyyy", Locale.ENGLISH);
 
@@ -96,6 +112,13 @@ public class MainViewController {
             }
         });
         descriptionColumn.setCellValueFactory(new PropertyValueFactory<>("description"));
+
+        SortedList<Expense> sorted = new SortedList<>(filteredExpenses);
+        sorted.comparatorProperty().bind(expenseTable.comparatorProperty());
+        expenseTable.setItems(sorted);
+
+        searchField.textProperty().addListener((obs, oldText, newText) -> applyFilter());
+        categoryFilter.valueProperty().addListener((obs, oldValue, newValue) -> applyFilter());
         refreshAll();
     }
 
@@ -197,7 +220,32 @@ public class MainViewController {
     }
 
     private void loadExpenseData() {
-        expenseTable.setItems(FXCollections.observableArrayList(expenses.getExpenses(selectedMonth)));
+        refreshCategoryFilter();
+        monthExpenses.setAll(expenses.getExpenses(selectedMonth));
+        applyFilter();
+    }
+
+    // Keeps the chosen category if it still exists (e.g. after adding an expense)
+    private void refreshCategoryFilter() {
+        String chosen = categoryFilter.getValue();
+        List<String> items = new java.util.ArrayList<>();
+        items.add(ALL_CATEGORIES);
+        items.addAll(expenses.getAllCategoryNames());
+        categoryFilter.getItems().setAll(items);
+        categoryFilter.setValue(items.contains(chosen) ? chosen : ALL_CATEGORIES);
+    }
+
+    private void applyFilter() {
+        String category = categoryFilter.getValue();
+        ExpenseFilter filter = new ExpenseFilter(searchField.getText(),
+                category == null || ALL_CATEGORIES.equals(category) ? null : category);
+        filteredExpenses.setPredicate(filter);
+
+        double shownTotal = filteredExpenses.stream().mapToDouble(Expense::getAmount).sum();
+        resultLabel.setText(filter.isActive()
+                ? String.format("Showing %d of %d expenses · %s", filteredExpenses.size(), monthExpenses.size(),
+                        money.format(shownTotal))
+                : String.format("%d expenses · %s", monthExpenses.size(), money.format(shownTotal)));
     }
 
     // ---------------------------------------------------------------- chart

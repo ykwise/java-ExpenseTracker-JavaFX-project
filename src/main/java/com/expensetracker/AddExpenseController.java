@@ -1,6 +1,9 @@
 package com.expensetracker;
 
+import com.expensetracker.BudgetService.BudgetStatus;
 import java.time.LocalDate;
+import java.time.YearMonth;
+import java.util.OptionalDouble;
 import javafx.fxml.FXML;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
@@ -72,7 +75,8 @@ public class AddExpenseController {
                 // This is an existing expense to update
                 DatabaseManager.updateExpense(expenseId, date, category, amount, description);
             }
-            
+
+            showBudgetAlertIfNeeded(date, category);
             dialogStage.close();
 
         } catch (NumberFormatException e) {
@@ -80,6 +84,29 @@ public class AddExpenseController {
             alert.setTitle("Invalid Input");
             alert.setHeaderText("Invalid Amount");
             alert.setContentText("Please enter a valid number for the amount.");
+            alert.showAndWait();
+        }
+    }
+
+    // Warns (but does not block) when this month's spending in the category nears or passes its budget
+    private void showBudgetAlertIfNeeded(LocalDate date, String category) {
+        if (!YearMonth.from(date).equals(YearMonth.now())) {
+            return; // budgets are monthly; expenses in other months don't affect this month's budget
+        }
+
+        OptionalDouble budget = DatabaseManager.getBudget(category);
+        double spent = DatabaseManager.getMonthlySpent(category);
+        BudgetStatus status = BudgetService.evaluate(spent, budget);
+
+        if (status == BudgetStatus.WARNING || status == BudgetStatus.EXCEEDED) {
+            double limit = budget.getAsDouble();
+            Alert alert = new Alert(Alert.AlertType.WARNING);
+            alert.setTitle("Budget Alert");
+            alert.setHeaderText(status == BudgetStatus.EXCEEDED
+                    ? category + " budget exceeded"
+                    : category + " budget almost used up");
+            alert.setContentText(String.format("Spent %.2f of %.2f this month (%.0f%%).",
+                    spent, limit, spent / limit * 100));
             alert.showAndWait();
         }
     }

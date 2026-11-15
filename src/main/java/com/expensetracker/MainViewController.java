@@ -17,6 +17,9 @@ import java.time.LocalDate;
 import java.util.List;
 import javafx.scene.control.Alert;
 import java.util.Optional;
+import java.util.OptionalDouble;
+import javafx.scene.control.ChoiceDialog;
+import javafx.scene.control.TextInputDialog;
 import javafx.scene.control.ButtonType;
 import javafx.embed.swing.SwingNode;
 import javax.swing.SwingUtilities;
@@ -208,6 +211,49 @@ public class MainViewController {
 	    }
 	    loadChartData();
 	}
+
+    // Lets the user pick a category and set (or change) its monthly budget
+    @FXML
+    private void handleSetBudget() {
+        List<String> categories = DatabaseManager.getAllCategoryNames();
+        if (categories.isEmpty()) {
+            return;
+        }
+
+        ChoiceDialog<String> categoryDialog = new ChoiceDialog<>(categories.get(0), categories);
+        categoryDialog.setTitle("Set Budget");
+        categoryDialog.setHeaderText("Choose a category");
+        categoryDialog.setContentText("Category:");
+        Optional<String> category = categoryDialog.showAndWait();
+        if (category.isEmpty()) {
+            return; // user cancelled
+        }
+
+        OptionalDouble current = DatabaseManager.getBudget(category.get());
+        TextInputDialog amountDialog = new TextInputDialog(
+                current.isPresent() ? String.format("%.2f", current.getAsDouble()) : "");
+        amountDialog.setTitle("Set Budget");
+        amountDialog.setHeaderText("Monthly budget for " + category.get());
+        amountDialog.setContentText("Amount:");
+        Optional<String> input = amountDialog.showAndWait();
+        if (input.isEmpty()) {
+            return; // user cancelled
+        }
+
+        try {
+            double limit = Double.parseDouble(input.get().trim());
+            if (limit <= 0) {
+                throw new NumberFormatException();
+            }
+            DatabaseManager.setBudget(category.get(), limit);
+        } catch (NumberFormatException e) {
+            Alert alert = new Alert(Alert.AlertType.ERROR);
+            alert.setTitle("Invalid Budget");
+            alert.setHeaderText("Invalid amount");
+            alert.setContentText("Please enter a number greater than 0.");
+            alert.showAndWait();
+        }
+    }
 
     @FXML
     private TableView<Expense> expenseTable;

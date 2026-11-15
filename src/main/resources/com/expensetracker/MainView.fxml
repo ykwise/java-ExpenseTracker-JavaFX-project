@@ -18,6 +18,7 @@
             <Button onAction="#handleEditExpense" maxWidth="1.7976931348623157E308" mnemonicParsing="false" text="Edit Expense" />
             <Button onAction="#handleDeleteExpense" maxWidth="1.7976931348623157E308" mnemonicParsing="false" text="Delete Expense" />
             <Button onAction="#handleExportToCSV" maxWidth="1.7976931348623157E308" mnemonicParsing="false" text="Export to CSV" />
+            <Button onAction="#handleSetBudget" maxWidth="1.7976931348623157E308" mnemonicParsing="false" text="Set Budget" />
             
          </children>
          <padding>
